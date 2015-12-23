@@ -1,0 +1,11 @@
+metadata:
+  name: tin
+  short-description: A package builder for multiple linux distributions
+  long-description: >
+    A single tool for creating packages for multiple linux distributions. The
+    tool favors simplicity over ubiquity and is intended for use for
+    containers. So it lacks some rarely useful features like install scripts.
+
+scripts:
+  version: git describe
+

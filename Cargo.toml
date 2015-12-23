@@ -5,6 +5,10 @@ authors = ["Paul Colomiets"]
 
 [dependencies]
 tar = "0.3"
+scan_dir = "0.3"
+quire = "0.1"
+argparse = "0.2"
+rustc-serialize = "0.3"
 
 [[bin]]
 name = "tin"
