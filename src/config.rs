@@ -6,25 +6,25 @@ use quire::parse_config;
 
 
 #[derive(RustcDecodable, Clone, Debug)]
-struct Metadata {
-    name: Option<String>,
-    short_description: Option<String>,
-    long_description: Option<String>,
-    version: Option<String>,
+pub struct Metadata {
+    pub name: Option<String>,
+    pub short_description: Option<String>,
+    pub long_description: Option<String>,
+    pub version: Option<String>,
 }
 
 #[derive(RustcDecodable, Clone, Debug)]
-struct Scripts {
-    name: Option<String>,
-    short_description: Option<String>,
-    long_description: Option<String>,
-    version: Option<String>,
+pub struct Scripts {
+    pub name: Option<String>,
+    pub short_description: Option<String>,
+    pub long_description: Option<String>,
+    pub version: Option<String>,
 }
 
 #[derive(RustcDecodable, Clone, Debug)]
-struct Config {
-    metadata: Metadata,
-    scripts: Scripts,
+pub struct Config {
+    pub metadata: Metadata,
+    pub scripts: Scripts,
 }
 
 impl Config {

@@ -26,8 +26,7 @@ containers:
     setup:
     - !Ubuntu trusty
     - !UbuntuUniverse ~
-    - !Install [make, checkinstall, wget, ca-certificates,
-                libssl-dev, build-essential]
+    - !Install [git, ca-certificates, build-essential]
 
     - !TarInstall
       url: "http://static.rust-lang.org/dist/rust-1.5.0-x86_64-unknown-linux-gnu.tar.gz"
