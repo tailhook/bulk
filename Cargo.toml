@@ -1,0 +1,11 @@
+[package]
+name = "tin"
+version = "0.1.0"
+authors = ["Paul Colomiets"]
+
+[dependencies]
+tar = "0.3"
+
+[[bin]]
+name = "tin"
+path = "src/main.rs"
