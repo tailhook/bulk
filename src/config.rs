@@ -8,6 +8,7 @@ use quire::parse_config;
 #[derive(RustcDecodable, Clone, Debug)]
 pub struct Metadata {
     pub name: Option<String>,
+    pub architecture: Option<String>,
     pub short_description: Option<String>,
     pub long_description: Option<String>,
     pub version: Option<String>,
@@ -16,6 +17,7 @@ pub struct Metadata {
 #[derive(RustcDecodable, Clone, Debug)]
 pub struct Scripts {
     pub name: Option<String>,
+    pub architecture: Option<String>,
     pub short_description: Option<String>,
     pub long_description: Option<String>,
     pub version: Option<String>,
@@ -32,11 +34,13 @@ impl Config {
         Structure::new()
         .member("metadata", Structure::new()
             .member("name", Scalar::new().optional())
+            .member("architecture", Scalar::new().optional())
             .member("short_description", Scalar::new().optional())
             .member("long_description", Scalar::new().optional())
             .member("version", Scalar::new().optional()))
         .member("scripts", Structure::new()
             .member("name", Scalar::new().optional())
+            .member("architecture", Scalar::new().optional())
             .member("short_description", Scalar::new().optional())
             .member("long_description", Scalar::new().optional())
             .member("version", Scalar::new().optional()))

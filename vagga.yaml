@@ -20,6 +20,17 @@ commands:
     container: ubuntu
     run: [/work/target/debug/tin]
 
+  package: !Command
+    description: Package itself for ubuntu
+    container: ubuntu
+    run: |
+      rm -rf pkg
+      mkdir pkg
+      cargo install --path /work --root /work/pkg/usr
+      rm pkg/usr/.crates.toml
+      # pack by itself
+      /work/pkg/usr/bin/tin pack --config ./package.yaml --dir ./pkg
+
 containers:
 
   ubuntu:

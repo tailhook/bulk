@@ -3,6 +3,8 @@ extern crate argparse;
 extern crate tar;
 extern crate scan_dir;
 extern crate rustc_serialize;
+extern crate shaman;
+extern crate flate2;
 
 
 mod config;
@@ -42,7 +44,7 @@ fn main() {
             .add_argument("command", Store,
                 "Command to run. Currently only `pack` is supported");
         ap.refer(&mut args)
-            .add_argument("arugments", List,
+            .add_argument("arguments", List,
                 "Arguments for the command");
         ap.stop_on_first_argument(true);
         ap.parse_args_or_exit();

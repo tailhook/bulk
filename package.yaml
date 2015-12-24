@@ -7,5 +7,6 @@ metadata:
     containers. So it lacks some rarely useful features like install scripts.
 
 scripts:
-  version: git describe
+  version: echo $(git describe)\~$(grep -Po '(?<=DISTRIB_CODENAME=).*' /etc/lsb-release)
+  architecture: dpkg --print-architecture
 
