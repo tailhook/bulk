@@ -43,3 +43,39 @@ Limitations are:
    tar/deb archive
 4. Limited support of package metadata (focusing on common between different
    linux distributions)
+
+
+How To Use
+==========
+
+Build program and install to some directory, say ``pkg``. Put some metadata
+into ``package.yaml``. Then pack it into a debian package::
+
+    tin pack --config package.yaml --dir pkg --dest-dir dist
+
+And you will get a package in ``dist`` directory. You may find the example
+``package.yaml`` in this repository.
+
+
+Building Packages
+=================
+
+Just a few examples on how to prepare things to be packaged. With autotools
+it looks like this::
+
+    ./configure --prefix=/usr
+    make
+    rm -rf pkg
+    make install DESTDIR=$(pwd)/pkg
+    tin pack --config package.yaml --dir pkg --dest-dir dist
+
+Or with new ``cargo install``::
+
+    rm -rf pkg
+    cargo install PACKAGE_NAME --root ./pkg/usr
+    rm pkg/usr/.crates.toml
+    tin pack --config package.yaml --dir pkg --dest-dir dist
+
+This way you may package crate from crates.io.
+
+

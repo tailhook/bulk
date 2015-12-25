@@ -1,12 +1,16 @@
 use std::io;
 use std::io::{Write, Seek, SeekFrom};
 
+
+pub const SIZE_AUTO: u64 = 9999999999;
+
+
 pub struct ArArchive<T:Write+Seek>(T);
 
 struct ArMember<'a, T:Write+Seek+'a> {
     position: u64,
-    current_size: usize,
-    defined_size: usize,
+    current_size: u64,
+    defined_size: u64,
     archive: &'a mut ArArchive<T>,
 }
 
@@ -14,7 +18,7 @@ impl<'a, T:Write+Seek+'a> Write for ArMember<'a, T> {
     fn write(&mut self, data: &[u8]) -> Result<usize, io::Error> {
         match self.archive.0.write(data) {
             Ok(x) => {
-                self.current_size += x;
+                self.current_size += x as u64;
                 Ok(x)
             }
             Err(e) => Err(e),
@@ -49,7 +53,7 @@ impl<T:Write+Seek> ArArchive<T> {
     }
     pub fn add<'x>(&'x mut self, filename: &str,
         filemtime: u32, uid: u32, gid: u32,
-        mode: u32, size: usize) -> Result<ArMember<'x, T>, io::Error>
+        mode: u32, size: u64) -> Result<ArMember<'x, T>, io::Error>
     {
         assert!(filename.len() <= 16);
         assert!(uid <= 999999);

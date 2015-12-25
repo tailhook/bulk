@@ -53,6 +53,7 @@ pub fn populate(config: &Config) -> Result<Metadata, String> {
         } else {
             name.clone()
         };
+    let descr = descr.replace("\n", " ");
     let long = if let Some(ref x) = config.metadata.long_description {
             x.clone()
         } else if let Some(ref cmd) = config.scripts.long_description {

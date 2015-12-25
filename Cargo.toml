@@ -2,10 +2,15 @@
 name = "tin"
 version = "0.1.0"
 authors = ["Paul Colomiets"]
+license = "MIT"
+repository = "http://github.com/tailhook/tin"
+description = """
+    A simple tool for making deb packages.
+"""
 
 [dependencies]
-tar = "0.3"
-scan_dir = "0.3"
+tar = { git = "git://github.com/alexcrichton/tar-rs.git", rev="3082985" }
+scan_dir = "0.3.2"
 quire = "0.1"
 argparse = "0.2"
 rustc-serialize = "0.3"

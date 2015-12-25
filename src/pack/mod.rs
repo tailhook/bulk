@@ -1,5 +1,7 @@
 mod metadata;
 mod ar;
+mod tar;
+mod deb;
 
 use std::io;
 use std::io::{stdout, stderr, Write};
@@ -9,12 +11,17 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 
 use argparse::{ArgumentParser, Parse};
-use tar::{Archive, Header};
+use tar::Archive;
 use flate2::{GzBuilder, Compression};
+use scan_dir;
 
 use config::Config;
-use self::ar::ArArchive;
+use self::ar::{ArArchive, SIZE_AUTO};
 use self::metadata::{populate, Metadata};
+use self::tar::ArchiveExt;
+use self::deb::format_deb_control;
+use path_util::RelativeExt;
+
 
 fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
     -> Result<(), io::Error>
@@ -28,42 +35,32 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
         .and_then(|mut f| f.write_all(b"2.0\n")));
 
     {
-        let control = try!(ar.add("control.tar.gz", mtime, 0, 0, 0o100644,
-            9999999999));
+        let control = try!(ar.add("control.tar.gz",
+            mtime, 0, 0, 0o100644, SIZE_AUTO));
         let creal = GzBuilder::new().write(control, Compression::Best);
         let arch = Archive::new(creal);
-        let data = format!(concat!(
-            "Package: {name}\n",
-            "Version: {version}\n",
-            "Architecture: {arch}\n",
-            "Maintainer: tin\n",  // TODO(tailhook)
-            "Description: {short_description}\n",  // TODO(tailhook)
-            ), name=meta.name, version=meta.version, arch=meta.architecture,
-               short_description=meta.short_description);
-        let bytes = data.as_bytes();
-        let mut head = Header::new();
-        try!(head.set_path("control"));
-        head.set_mtime(mtime as u64);
-        head.set_size(bytes.len() as u64);
-        head.set_mode(0o644);
-        head.set_cksum();
-        try!(arch.append(&head, &mut io::Cursor::new(bytes)));
+        try!(arch.append_blob("control", mtime,
+            &format_deb_control(&meta)));
         try!(arch.finish());
     }
     {
-        let data = try!(ar.add("data.tar.gz", mtime, 0, 0, 0o100644,
-            9999999999));
+        let data = try!(ar.add("data.tar.gz",
+            mtime, 0, 0, 0o100644, SIZE_AUTO));
         let dreal = GzBuilder::new().write(data, Compression::Best);
+        let mut files = try!(scan_dir::ScanDir::files().skip_backup(true)
+            .walk(dir, |iter| {
+                iter.map(|(entry, _name)| {
+                    entry.path().rel_to(dir).unwrap()
+                                           .to_path_buf()})
+                    .collect::<Vec<_>>()
+            }).map_err(|errs| io::Error::new(io::ErrorKind::InvalidData,
+                errs.iter().map(ToString::to_string).collect::<Vec<_>>()[..]
+                    .join("\n"))));
+        files.sort();
         let arch = Archive::new(dreal);
-        let data = "hello";
-        let bytes = data.as_bytes();
-        let mut head = Header::new();
-        try!(head.set_path("usr/share/text.txt"));
-        head.set_mtime(mtime as u64);
-        head.set_size(bytes.len() as u64);
-        head.set_mode(0o644);
-        head.set_cksum();
-        try!(arch.append(&head, &mut io::Cursor::new(bytes)));
+        for fpath in files {
+            try!(arch.append_file_at(dir, fpath, mtime));
+        }
         try!(arch.finish());
     }
     Ok(())

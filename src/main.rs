@@ -9,6 +9,7 @@ extern crate flate2;
 
 mod config;
 mod pack;
+mod path_util;
 
 use std::str::FromStr;
 

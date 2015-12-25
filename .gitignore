@@ -1,4 +1,6 @@
 /.vagga
 /target
 /pkg
+/dist
+
 
