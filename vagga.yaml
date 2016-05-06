@@ -2,48 +2,73 @@ commands:
 
   make: !Command
     description: Build executable
-    container: ubuntu
+    container: rust-musl
     run: [cargo, build]
 
   test: !Command
     description: Run unit tests
-    container: ubuntu
+    container: rust-musl
     run: [cargo, test]
 
   cargo: !Command
     description: Run any cargo command
-    container: ubuntu
+    container: rust-musl
     run: [cargo]
 
   tin: !Command
-    description: Run debuggin version of tin
-    container: ubuntu
+    description: Run debugging version of tin
+    container: rust-musl
     run: [/work/target/debug/tin]
 
   package: !Command
-    description: Package itself for ubuntu
-    container: ubuntu
+    description: Package itself
+    container: rust-musl
     run: |
       rm -rf pkg
       mkdir pkg
-      cargo install --path /work --root /work/pkg/usr
-      rm pkg/usr/.crates.toml
+      cargo build --target=x86_64-unknown-linux-musl --release
+      install -D target/x86_64-unknown-linux-musl/release/tin pkg/usr/bin/tin
       # pack by itself
       /work/pkg/usr/bin/tin pack --config ./package.yaml --dir ./pkg
 
 containers:
 
-  ubuntu:
+  rust-musl:
+    environ: &rustenv
+      LD_LIBRARY_PATH: /musl/lib/rustlib/x86_64-unknown-linux-musl/lib
+      PATH: /musl/bin:/usr/local/bin:/usr/bin:/bin
+      HOME: /work/target
     setup:
     - !Ubuntu trusty
-    - !UbuntuUniverse ~
-    - !Install [git, ca-certificates, build-essential]
-
+    - !UbuntuUniverse
+    - !Install [build-essential, ca-certificates]
+    - !BuildDeps [cmake, libc++-dev, curl, autoconf, automake, libtool]
+    # Build script derived from
+    # https://github.com/rust-lang/rust-buildbot/blob/master/slaves/linux/build-musl.sh
     - !TarInstall
-      url: "http://static.rust-lang.org/dist/rust-1.5.0-x86_64-unknown-linux-gnu.tar.gz"
-      script: "./install.sh --prefix=/usr \
-               --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo"
+      url: http://www.musl-libc.org/releases/musl-1.1.14.tar.gz
+      script: |
+        ./configure --prefix=/musl --disable-shared
+        make -j2
+        make install
 
-    environ:
-      HOME: /work/target
+    - !Tar
+      url: http://llvm.org/releases/3.8.0/llvm-3.8.0.src.tar.xz
+      path: /tmp/llvm
+    - !TarInstall
+      url: http://llvm.org/releases/3.8.0/libunwind-3.8.0.src.tar.xz
+      script: |
+        cmake . -DLLVM_PATH=/tmp/llvm/llvm-3.8.0.src -DLIBUNWIND_ENABLE_SHARED=0
+        make -j2
+        cp lib/libunwind.a /musl/lib
+    - !TarInstall
+      url: "http://static.rust-lang.org/dist/rust-1.8.0-x86_64-unknown-linux-gnu.tar.gz"
+      script: "./install.sh --prefix=/usr --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo"
+    - !TarInstall
+      url: "http://static.rust-lang.org/dist/rust-std-1.8.0-x86_64-unknown-linux-musl.tar.gz"
+      script: "./install.sh --prefix=/musl \
+               --components=rust-std-x86_64-unknown-linux-musl"
+    - !Sh 'ln -s /musl/lib/rustlib/x86_64-unknown-linux-musl /usr/lib/rustlib/x86_64-unknown-linux-musl'
 
+    # For packaging
+    - !Install [git]

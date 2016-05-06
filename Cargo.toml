@@ -9,7 +9,7 @@ description = """
 """
 
 [dependencies]
-tar = { git = "git://github.com/alexcrichton/tar-rs.git", rev="3082985" }
+tar = "0.3.2"
 scan_dir = "0.3.2"
 quire = "0.1"
 argparse = "0.2"
