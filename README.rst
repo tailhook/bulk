@@ -20,12 +20,12 @@ Default packaging tools for debian are too complex. Also I wanted:
 
 1. Simple to install zero-dependency tool (comparing to fpm_)
 2. Experiment a little bit with reproducible packages (i.e. omit timestamps
-   from package)
+   from a package)
 3. Add support for maintaining repositories in future
 4. Add tiny wrapper around vagga to actually build the packages for all
    distributions by single command
 
-It turned out that all functionality I needed from fpm_ could be reimplemnted
+It turned out that all functionality I needed from fpm_ could be reimplemented
 in a night, so we have a new tool, ready for the new experiments.
 
 
