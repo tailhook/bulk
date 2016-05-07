@@ -1,4 +1,6 @@
 mod metadata;
+mod ar;
+mod deb;
 
 use std::io::{self, stdout, stderr};
 use std::path::PathBuf;
@@ -32,5 +34,5 @@ pub fn repo_add(args: Vec<String>) {
 
     let packages = packages.iter().map(gather_metadata)
         .collect::<Result<Vec<_>, io::Error>>();
-    println!("Packages {:?}",  packages);
+    println!("Packages {:#?}",  packages);
 }
