@@ -1,13 +1,17 @@
 use std::io::{self, Read, BufRead, BufReader};
 use std::collections::HashMap;
 
+use unicase::UniCase;
+
 
 fn error(text: &'static str) -> io::Error {
     return io::Error::new(io::ErrorKind::Other, text);
 }
 
 
-pub fn parse_control<R: Read>(r: R) -> io::Result<HashMap<String, String>> {
+pub fn parse_control<R: Read>(r: R)
+    -> io::Result<HashMap<UniCase<String>, String>>
+{
     let src = BufReader::new(r);
     let mut result = HashMap::new();
     let mut buf = None::<(String, String)>;
@@ -22,7 +26,7 @@ pub fn parse_control<R: Read>(r: R) -> io::Result<HashMap<String, String>> {
             }
         } else {
             if let Some((key, val)) = buf.take() {
-                result.insert(key, val);
+                result.insert(UniCase(key), val);
             }
             let mut pair = line.splitn(2, ':');
             match (pair.next(), pair.next()) {
@@ -34,7 +38,7 @@ pub fn parse_control<R: Read>(r: R) -> io::Result<HashMap<String, String>> {
         }
     }
     if let Some((key, val)) = buf.take() {
-        result.insert(key, val);
+        result.insert(UniCase(key), val);
     }
     return Ok(result);
 }

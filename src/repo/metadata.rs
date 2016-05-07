@@ -38,9 +38,9 @@ pub fn gather_metadata<P: AsRef<Path>>(p: P) -> io::Result<PackageMeta> {
             let hash = try!(deb::parse_control(entry));
             return Ok(PackageMeta {
                 filename: path.to_path_buf(),
-                arch: try!(hash.get("Architecture").map(Clone::clone)
+                arch: try!(hash.get(&"Architecture".into()).map(Clone::clone)
                     .ok_or(error("No architecture in deb package meta"))),
-                version: try!(hash.get("Version").map(Clone::clone)
+                version: try!(hash.get(&"Version".into()).map(Clone::clone)
                     .ok_or(error("No version in deb package meta"))),
             });
         }
