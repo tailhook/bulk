@@ -35,7 +35,11 @@ pub fn gather_metadata<P: AsRef<Path>>(p: P) -> io::Result<PackageMeta> {
     for entry in try!(arch.entries()) {
         let entry = try!(entry);
         if try!(entry.path()) == Path::new("control") {
-            let hash = try!(deb::parse_control(entry));
+            let control = try!(deb::parse_control(entry));
+            if control.len() != 1 {
+                return Err(error("Wrong control file in package"));
+            }
+            let hash = control.into_iter().next().unwrap();
             return Ok(PackageMeta {
                 filename: path.to_path_buf(),
                 arch: try!(hash.get(&"Architecture".into()).map(Clone::clone)
