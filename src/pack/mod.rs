@@ -75,7 +75,7 @@ fn _pack(config: &Path, dir: &Path, destdir: &Path) -> Result<(), String> {
             .map_err(|e| format!("Can't create destination dir: {}", e)));
     }
 
-    println!("Mdata {:?} -> {:?}: {:#?}", dir, dest, meta);
+    println!("{:?} -> {:?}: {:#?}", dir, dest, meta);
 
     // Reproducible builds spec
 

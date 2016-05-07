@@ -7,7 +7,7 @@ pub const SIZE_AUTO: u64 = 9999999999;
 
 pub struct ArArchive<T:Write+Seek>(T);
 
-struct ArMember<'a, T:Write+Seek+'a> {
+pub struct ArMember<'a, T:Write+Seek+'a> {
     position: u64,
     current_size: u64,
     defined_size: u64,
