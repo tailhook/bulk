@@ -109,7 +109,6 @@ pub fn pack(args: Vec<String>) {
         ap.refer(&mut destdir)
             .add_option(&["-D", "--dest-dir"], Parse,
                 "Directory to put package to");
-        ap.stop_on_first_argument(true);
         match ap.parse(args, &mut stdout(), &mut stderr()) {
             Ok(()) => {}
             Err(x) => exit(x),

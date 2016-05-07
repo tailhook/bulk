@@ -12,6 +12,7 @@ extern crate regex;
 mod expand;
 mod config;
 mod pack;
+mod repo;
 mod path_util;
 
 use std::str::FromStr;
@@ -22,6 +23,7 @@ use argparse::{ArgumentParser, Store, Print, List};
 enum Action {
     Help,
     Pack,
+    RepoAdd,
 }
 
 impl FromStr for Action {
@@ -30,6 +32,13 @@ impl FromStr for Action {
         match value {
             "help" => Ok(Action::Help),
             "pack" => Ok(Action::Pack),
+            "repo-add" => Ok(Action::RepoAdd),
+            "repo_add" => Ok(Action::RepoAdd),
+            "repoadd" => Ok(Action::RepoAdd),
+            "radd" => Ok(Action::RepoAdd),
+            "add-to-repo" => Ok(Action::RepoAdd),
+            "add_to_repo" => Ok(Action::RepoAdd),
+            "addtorepo" => Ok(Action::RepoAdd),
             _ => Err(())
         }
     }
@@ -46,7 +55,7 @@ fn main() {
             "Show version of tin and exit");
         ap.refer(&mut command)
             .add_argument("command", Store,
-                "Command to run. Currently only `pack` is supported");
+                "Command to run. Supported commands: pack, repo-add");
         ap.refer(&mut args)
             .add_argument("arguments", List,
                 "Arguments for the command");
@@ -56,11 +65,15 @@ fn main() {
     match command {
         Action::Help => {
             println!("Usage:");
-            println!("    tin pack [options]");
+            println!("    tin {{pack,repo-add}} [options]");
         }
         Action::Pack => {
             args.insert(0, "tin pack".to_string());
             pack::pack(args);
+        }
+        Action::RepoAdd => {
+            args.insert(0, "tin repo-add".to_string());
+            repo::repo_add(args);
         }
     }
 }

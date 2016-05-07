@@ -5,6 +5,11 @@ commands:
     container: rust-musl
     run: [cargo, build]
 
+  make-static: !Command
+    description: Build executable
+    container: rust-musl
+    run: [cargo, build, --target=x86_64-unknown-linux-musl]
+
   test: !Command
     description: Run unit tests
     container: rust-musl
@@ -30,6 +35,15 @@ commands:
       install -D target/x86_64-unknown-linux-musl/release/tin pkg/usr/bin/tin
       # pack by itself
       /work/pkg/usr/bin/tin pack --config ./package.yaml --dir ./pkg
+
+  repo-add: !Command
+    description: "Add `*.deb` to test repository in dist/repos
+      (prerequisites: make, package)"
+    container: rust-musl
+    run: |
+      target/debug/tin repo-add \
+        --config ./package.yaml --repository-base ./dist/repos \
+        dist/*.deb
 
 containers:
 
