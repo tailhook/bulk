@@ -5,8 +5,11 @@ extern crate scan_dir;
 extern crate rustc_serialize;
 extern crate shaman;
 extern crate flate2;
+extern crate regex;
+#[macro_use] extern crate lazy_static;
 
 
+mod expand;
 mod config;
 mod pack;
 mod path_util;

@@ -15,9 +15,9 @@ use tar::Archive;
 use flate2::{GzBuilder, Compression};
 use scan_dir;
 
-use config::Config;
+use config::{Config, Metadata};
 use self::ar::{ArArchive, SIZE_AUTO};
-use self::metadata::{populate, Metadata};
+use self::metadata::populate;
 use self::tar::ArchiveExt;
 use self::deb::format_deb_control;
 use path_util::RelativeExt;

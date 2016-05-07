@@ -1,4 +1,4 @@
-use super::metadata::Metadata;
+use config::Metadata;
 
 
 pub fn format_deb_control(meta: &Metadata) -> Vec<u8> {

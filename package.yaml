@@ -5,8 +5,27 @@ metadata:
     A single tool for creating packages for multiple linux distributions. The
     tool favors simplicity over ubiquity and is intended for use for
     containers. So it lacks some rarely useful features like install scripts.
+  version: $(git describe)
+  architecture: $(dpkg --print-architecture)
 
-scripts:
-  version: echo $(git describe)
-  architecture: dpkg --print-architecture
+repositories:
 
+- kind: debian
+  suite: static
+  component: tin
+  architecture: $(dpkg --print-architecture)
+  keep-releases: 1
+  match-version: ^\d+\.\d+\.\d+$
+
+- kind: debian
+  suite: static
+  component: tin-stable
+  architecture: $(dpkg --print-architecture)
+  keep-releases: 1000
+  match-version: ^\d+\.\d+\.\d+$
+
+- kind: debian
+  suite: static
+  component: tin-testing
+  architecture: $(dpkg --print-architecture)
+  keep-releases: 100
