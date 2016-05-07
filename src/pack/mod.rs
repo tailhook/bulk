@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 
 use argparse::{ArgumentParser, Parse};
-use tar::Archive;
+use tar::{Builder as Archive};
 use flate2::{GzBuilder, Compression};
 use scan_dir;
 
@@ -20,7 +20,6 @@ use self::ar::{ArArchive, SIZE_AUTO};
 use self::metadata::populate;
 use self::tar::ArchiveExt;
 use self::deb::format_deb_control;
-use path_util::RelativeExt;
 
 
 fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
@@ -38,7 +37,7 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
         let control = try!(ar.add("control.tar.gz",
             mtime, 0, 0, 0o100644, SIZE_AUTO));
         let creal = GzBuilder::new().write(control, Compression::Best);
-        let arch = Archive::new(creal);
+        let mut arch = Archive::new(creal);
         try!(arch.append_blob("control", mtime,
             &format_deb_control(&meta)));
         try!(arch.finish());
@@ -50,14 +49,13 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
         let mut files = try!(scan_dir::ScanDir::files().skip_backup(true)
             .walk(dir, |iter| {
                 iter.map(|(entry, _name)| {
-                    entry.path().rel_to(dir).unwrap()
-                                           .to_path_buf()})
+                    entry.path().strip_prefix(dir).unwrap().to_path_buf()})
                     .collect::<Vec<_>>()
             }).map_err(|errs| io::Error::new(io::ErrorKind::InvalidData,
                 errs.iter().map(ToString::to_string).collect::<Vec<_>>()[..]
                     .join("\n"))));
         files.sort();
-        let arch = Archive::new(dreal);
+        let mut arch = Archive::new(dreal);
         for fpath in files {
             try!(arch.append_file_at(dir, fpath, mtime));
         }

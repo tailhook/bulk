@@ -7,18 +7,18 @@ use tar;
 
 
 pub trait ArchiveExt {
-    fn append_blob<P: AsRef<Path>>(&self, name: P, mtime: u32, data: &[u8])
+    fn append_blob<P: AsRef<Path>>(&mut self, name: P, mtime: u32, data: &[u8])
         -> Result<(), io::Error>;
-    fn append_file_at<P: AsRef<Path>, Q: AsRef<Path>>(&self,
+    fn append_file_at<P: AsRef<Path>, Q: AsRef<Path>>(&mut self,
         dir: P, path: Q, mtime: u32)
         -> Result<(), io::Error>;
 }
 
-impl<T: io::Write> ArchiveExt for tar::Archive<T> {
-    fn append_blob<P: AsRef<Path>>(&self, name: P, mtime: u32, data: &[u8])
+impl<T: io::Write> ArchiveExt for tar::Builder<T> {
+    fn append_blob<P: AsRef<Path>>(&mut self, name: P, mtime: u32, data: &[u8])
         -> Result<(), io::Error>
     {
-        let mut head = tar::Header::new();
+        let mut head = tar::Header::new_gnu();
         try!(head.set_path(name));
         head.set_mtime(mtime as u64);
         head.set_size(data.len() as u64);
@@ -26,11 +26,11 @@ impl<T: io::Write> ArchiveExt for tar::Archive<T> {
         head.set_cksum();
         self.append(&head, &mut io::Cursor::new(&data))
     }
-    /// This does same as Archive::append_file, but has no mtime/size/owner
+    /// This does same as Builder::append_file, but has no mtime/size/owner
     /// information which we explicitly have chosen to omit
     ///
     /// Silently skips things that are neither files nor symlinks
-    fn append_file_at<P: AsRef<Path>, Q: AsRef<Path>>(&self,
+    fn append_file_at<P: AsRef<Path>, Q: AsRef<Path>>(&mut self,
         dir: P, path: Q, mtime: u32)
         -> Result<(), io::Error>
     {
@@ -38,7 +38,7 @@ impl<T: io::Write> ArchiveExt for tar::Archive<T> {
         let fullpath = dir.as_ref().join(path);
         let meta = try!(metadata(&fullpath));
 
-        let mut head = tar::Header::new();
+        let mut head = tar::Header::new_gnu();
         try!(head.set_path(path));
         head.set_mtime(mtime as u64);
 

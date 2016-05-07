@@ -10,7 +10,7 @@ dependencies = [
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "scan_dir 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "shaman 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tar 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -148,12 +148,11 @@ dependencies = [
 
 [[package]]
 name = "tar"
-version = "0.3.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "filetime 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

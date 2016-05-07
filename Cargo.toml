@@ -9,7 +9,7 @@ description = """
 """
 
 [dependencies]
-tar = "0.3.2"
+tar = "0.4.5"
 scan_dir = "0.3.2"
 quire = "0.1.8"
 argparse = "0.2"

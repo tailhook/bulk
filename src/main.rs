@@ -13,7 +13,6 @@ mod expand;
 mod config;
 mod pack;
 mod repo;
-mod path_util;
 
 use std::str::FromStr;
 
