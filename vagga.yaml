@@ -23,11 +23,13 @@ commands:
   tin: !Command
     description: Run debugging version of tin
     container: rust-musl
+    prerequisites: [make]
     run: [/work/target/debug/tin]
 
   package: !Command
     description: Package itself
     container: rust-musl
+    prerequisites: [make]
     run: |
       rm -rf pkg
       mkdir pkg
@@ -37,9 +39,9 @@ commands:
       /work/pkg/usr/bin/tin pack --config ./package.yaml --dir ./pkg
 
   repo-add: !Command
-    description: "Add `*.deb` to test repository in dist/repos
-      (prerequisites: make, package)"
+    description: "Add `*.deb` to test repository in dist/repos"
     container: rust-musl
+    prerequisites: [make]
     run: |
       target/debug/tin repo-add \
         --config ./package.yaml --repository-base ./dist/repos \

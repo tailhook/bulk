@@ -16,7 +16,7 @@ pub struct Metadata {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(RustcDecodable, Clone, Debug)]
+#[derive(RustcDecodable, Clone, Copy, Debug)]
 pub enum RepositoryType {
     debian,
 }

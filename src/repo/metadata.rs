@@ -1,8 +1,10 @@
 use std::io::{self, Read};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::collections::HashMap;
 
 use flate2::FlateReadExt;
+use unicase::UniCase;
 
 use repo::ar;
 use repo::deb;
@@ -11,8 +13,10 @@ use tar;
 #[derive(Debug)]
 pub struct PackageMeta {
     pub filename: PathBuf,
+    pub name: String,
     pub arch: String,
     pub version: String,
+    pub info: HashMap<UniCase<String>, String>,
 }
 
 fn error(text: &'static str) -> io::Error {
@@ -42,10 +46,13 @@ pub fn gather_metadata<P: AsRef<Path>>(p: P) -> io::Result<PackageMeta> {
             let hash = control.into_iter().next().unwrap();
             return Ok(PackageMeta {
                 filename: path.to_path_buf(),
+                name: try!(hash.get(&"Package".into()).map(Clone::clone)
+                    .ok_or(error("No package name in deb package meta"))),
                 arch: try!(hash.get(&"Architecture".into()).map(Clone::clone)
                     .ok_or(error("No architecture in deb package meta"))),
                 version: try!(hash.get(&"Version".into()).map(Clone::clone)
                     .ok_or(error("No version in deb package meta"))),
+                info: hash,
             });
         }
     }

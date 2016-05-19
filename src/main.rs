@@ -7,6 +7,8 @@ extern crate shaman;
 extern crate flate2;
 extern crate regex;
 extern crate unicase;
+extern crate env_logger;
+#[macro_use] extern crate log;
 #[macro_use] extern crate lazy_static;
 
 
@@ -14,6 +16,7 @@ mod expand;
 mod config;
 mod pack;
 mod repo;
+mod deb_ext;
 
 use std::str::FromStr;
 
@@ -62,6 +65,7 @@ fn main() {
         ap.stop_on_first_argument(true);
         ap.parse_args_or_exit();
     }
+    env_logger::init().expect("init logging system");
     match command {
         Action::Help => {
             println!("Usage:");
