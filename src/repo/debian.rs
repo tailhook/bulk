@@ -1,4 +1,5 @@
-use std::io::{self, Write};
+use std::io::{self, Write, BufWriter};
+use std::fs::{File, create_dir_all};
 use std::path::{PathBuf, Path};
 use std::collections::{BTreeSet, BTreeMap, HashMap};
 
@@ -31,7 +32,7 @@ pub struct Packages(Vec<Package>);
 pub struct Repository {
     root: PathBuf,
     suites: HashMap<String, Release>,
-    components: HashMap<(String, String), Packages>,
+    components: HashMap<(String, String, String), Packages>,
 }
 
 impl Release {
@@ -88,11 +89,29 @@ impl Repository {
             components: HashMap::new(),
         }
     }
-    pub fn open(&mut self, suite: &str, component: &str)
+    pub fn open(&mut self, suite: &str, component: &str, arch: &str)
         -> io::Result<&mut Packages>
     {
         Ok(self.components.entry(
-            (String::from(suite), String::from(component))
+            (String::from(suite), String::from(component), String::from(arch))
         ).or_insert_with(Packages::new))
+    }
+    pub fn write(self) -> io::Result<()> {
+        if self.suites.len() == 0 && self.components.len() == 0 {
+            return Ok(());
+        }
+
+        let mut tempfiles = Vec::new();
+        for ((suite, cmp, arch), pkg) in self.components {
+            let dir = self.root
+                .join("dists").join(suite).join(cmp)
+                .join(format!("binary-{}", arch));
+            try!(create_dir_all(&dir));
+            let tmp = dir.join("Packages.tmp");
+            let ref mut buf = BufWriter::new(try!(File::create(&tmp)));
+            try!(pkg.output(buf));
+            tempfiles.push((tmp, dir.join("Packages")));
+        }
+        Ok(())
     }
 }

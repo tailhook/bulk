@@ -3,7 +3,7 @@ mod ar;
 mod deb;
 mod debian;
 
-use std::io::{self, stdout, stderr, Write};
+use std::io::{stdout, stderr, Write};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::process::exit;
@@ -31,8 +31,6 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path)
         };
         let matching = packages.iter()
             .filter(|p| {
-                repo.architecture.as_ref().map(|x| x == &p.arch)
-                .unwrap_or(true) &&
                 version_re.as_ref().map(|x| x.is_match(&p.version))
                 .unwrap_or(true)
             })
@@ -41,11 +39,9 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path)
             match (repo.kind, &repo.suite, &repo.component) {
                 (RepositoryType::debian, &Some(ref suite), &Some(ref comp))
                 => {
-                    let cur = try!(debian.open(suite, comp));
                     for p in matching {
-                        cur.add_package(p);
+                        try!(debian.open(suite, comp, &p.arch)).add_package(p);
                     }
-                    //cur.retent(repo.keep_releases);
                 }
                 (RepositoryType::debian, _, _) => {
                     return Err("Debian repository requires suite and \
@@ -56,6 +52,10 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path)
         }
     }
     println!("{:#?}", debian);
+    // TODO(tailhook) copy files
+    // TODO(tailhook) retention
+    try!(debian.write());
+    // TODO(tailhook) remove removed files
     return Err("not implemented".into());
 }
 

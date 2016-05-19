@@ -13,19 +13,16 @@ repositories:
 - kind: debian
   suite: static
   component: tin
-  architecture: $(dpkg --print-architecture)
   keep-releases: 1
   match-version: ^\d+\.\d+\.\d+$
 
 - kind: debian
   suite: static
   component: tin-stable
-  architecture: $(dpkg --print-architecture)
   keep-releases: 1000
   match-version: ^\d+\.\d+\.\d+$
 
 - kind: debian
   suite: static
   component: tin-testing
-  architecture: $(dpkg --print-architecture)
   keep-releases: 100
