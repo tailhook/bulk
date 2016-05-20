@@ -3,7 +3,7 @@ extern crate argparse;
 extern crate tar;
 extern crate scan_dir;
 extern crate rustc_serialize;
-extern crate shaman;
+extern crate sha2;
 extern crate flate2;
 extern crate regex;
 extern crate unicase;

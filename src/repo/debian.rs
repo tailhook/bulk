@@ -3,6 +3,8 @@ use std::fs::{File, create_dir_all};
 use std::path::{PathBuf, Path};
 use std::collections::{BTreeSet, BTreeMap, HashMap};
 
+use sha2::sha2::Sha256;
+use sha2::digest::Digest;
 use unicase::UniCase;
 
 use deb_ext::WriteDebExt;
@@ -46,7 +48,7 @@ impl Release {
                 .collect::<Vec<&str>>()[..].join(" ")));
         try!(out.write_kv_lines("SHA256",
             self.sha256.iter().map(|(fname, &(size, ref hash))| {
-                format!("\n{} {} {}", hash, size, fname)
+                format!("{} {} {}", hash, size, fname)
             })));
         Ok(())
     }
@@ -92,11 +94,20 @@ impl Repository {
     pub fn open(&mut self, suite: &str, component: &str, arch: &str)
         -> io::Result<&mut Packages>
     {
+        let s = self.suites.entry(String::from(suite))
+            .or_insert_with(|| Release {
+                codename: String::from(suite),
+                architectures: BTreeSet::new(),
+                components: BTreeSet::new(),
+                sha256: BTreeMap::new(),
+            });
+        s.architectures.insert(String::from(arch));
+        s.components.insert(String::from(component));
         Ok(self.components.entry(
             (String::from(suite), String::from(component), String::from(arch))
         ).or_insert_with(Packages::new))
     }
-    pub fn write(self) -> io::Result<()> {
+    pub fn write(mut self) -> io::Result<()> {
         if self.suites.len() == 0 && self.components.len() == 0 {
             return Ok(());
         }
@@ -104,13 +115,28 @@ impl Repository {
         let mut tempfiles = Vec::new();
         for ((suite, cmp, arch), pkg) in self.components {
             let dir = self.root
-                .join("dists").join(suite).join(cmp)
+                .join("dists").join(&suite).join(&cmp)
                 .join(format!("binary-{}", arch));
             try!(create_dir_all(&dir));
             let tmp = dir.join("Packages.tmp");
-            let ref mut buf = BufWriter::new(try!(File::create(&tmp)));
-            try!(pkg.output(buf));
+            let mut buf = Vec::with_capacity(16384);
+            try!(pkg.output(&mut buf));
+            try!(File::create(&tmp).and_then(|mut f| f.write_all(&buf)));
             tempfiles.push((tmp, dir.join("Packages")));
+
+            let mut hash = Sha256::new();
+            hash.input(&buf);
+
+            self.suites.get_mut(&suite).expect("suite already created")
+            .sha256.insert(format!("{}/binary-{}/Packages", cmp, arch),
+                (buf.len() as u64, hash.result_str()));
+        }
+        for (_, suite) in self.suites {
+            let dir = self.root.join("dists").join(&suite.codename);
+            let tmp = dir.join("InRelease.tmp");
+            let ref mut buf = BufWriter::new(try!(File::create(&tmp)));
+            try!(suite.output(buf));
+            tempfiles.push((tmp, dir.join("InRelease")));
         }
         Ok(())
     }
