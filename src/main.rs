@@ -57,7 +57,7 @@ fn main() {
         let mut ap = ArgumentParser::new();
         ap.add_option(&["-V", "--version"],
             Print(env!("CARGO_PKG_VERSION").to_string()),
-            "Show version of tin and exit");
+            "Show version of bulk and exit");
         ap.refer(&mut command)
             .add_argument("command", Store,
                 "Command to run. Supported commands: pack, repo-add");
@@ -71,14 +71,14 @@ fn main() {
     match command {
         Action::Help => {
             println!("Usage:");
-            println!("    tin {{pack,repo-add}} [options]");
+            println!("    bulk {{pack,repo-add}} [options]");
         }
         Action::Pack => {
-            args.insert(0, "tin pack".to_string());
+            args.insert(0, "bulk pack".to_string());
             pack::pack(args);
         }
         Action::RepoAdd => {
-            args.insert(0, "tin repo-add".to_string());
+            args.insert(0, "bulk repo-add".to_string());
             repo::repo_add(args);
         }
     }

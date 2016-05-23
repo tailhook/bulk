@@ -1,8 +1,8 @@
-===
-Tin
-===
+====
+Bulk
+====
 
-Tin is a super-simple packaging utility. It's similar to fpm_ but implemented
+Bulk is a super-simple packaging utility. It's similar to fpm_ but implemented
 in rust.
 
 All it can is package a directory of files into deb package. More features
@@ -21,7 +21,7 @@ Default packaging tools for debian are too complex. Also I wanted:
 1. Simple to install zero-dependency tool (comparing to fpm_)
 2. Experiment a little bit with reproducible packages (i.e. omit timestamps
    from a package)
-3. Add support for maintaining repositories in future
+3. Simple utility to maintain (multiple) repositories
 4. Add tiny wrapper around vagga to actually build the packages for all
    distributions by single command
 
@@ -32,7 +32,7 @@ in a night, so we have a new tool, ready for the new experiments.
 Limitations
 ===========
 
-Tin should be simple. While we may lift few limitation in future versions we
+Bulk should be simple. While we may lift few limitation in future versions we
 don't aim to support all the features.
 
 Limitations are:
@@ -51,7 +51,7 @@ How To Use
 Build program and install to some directory, say ``pkg``. Put some metadata
 into ``package.yaml``. Then pack it into a debian package::
 
-    tin pack --config package.yaml --dir pkg --dest-dir dist
+    bulk pack --config package.yaml --dir pkg --dest-dir dist
 
 And you will get a package in ``dist`` directory. You may find the example
 ``package.yaml`` in this repository.
@@ -67,14 +67,14 @@ it looks like this::
     make
     rm -rf pkg
     make install DESTDIR=$(pwd)/pkg
-    tin pack --config package.yaml --dir pkg --dest-dir dist
+    bulk pack --config package.yaml --dir pkg --dest-dir dist
 
 Or with new ``cargo install``::
 
     rm -rf pkg
     cargo install PACKAGE_NAME --root ./pkg/usr
     rm pkg/usr/.crates.toml
-    tin pack --config package.yaml --dir pkg --dest-dir dist
+    bulk pack --config package.yaml --dir pkg --dest-dir dist
 
 This way you may package crate from crates.io.
 

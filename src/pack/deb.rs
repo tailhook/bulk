@@ -6,7 +6,7 @@ pub fn format_deb_control(meta: &Metadata) -> Vec<u8> {
         "Package: {name}\n",
         "Version: {version}\n",
         "Architecture: {arch}\n",
-        "Maintainer: tin\n",  // TODO(tailhook)
+        "Maintainer: bulk\n",  // TODO(tailhook)
         "Description: {short_description}\n",
         " {long_description}\n",
         ), name=meta.name, version=meta.version, arch=meta.architecture,

@@ -1,5 +1,5 @@
 metadata:
-  name: tin
+  name: bulk
   short-description: A package builder for multiple linux distributions
   long-description:
     A single tool for creating packages for multiple linux distributions. The
@@ -12,17 +12,17 @@ repositories:
 
 - kind: debian
   suite: static
-  component: tin
+  component: bulk
   keep-releases: 1
   match-version: ^\d+\.\d+\.\d+$
 
 - kind: debian
   suite: static
-  component: tin-stable
+  component: bulk-stable
   keep-releases: 1000
   match-version: ^\d+\.\d+\.\d+$
 
 - kind: debian
   suite: static
-  component: tin-testing
+  component: bulk-testing
   keep-releases: 100

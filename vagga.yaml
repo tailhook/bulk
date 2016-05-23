@@ -20,11 +20,11 @@ commands:
     container: rust-musl
     run: [cargo]
 
-  tin: !Command
-    description: Run debugging version of tin
+  bulk: !Command
+    description: Run debugging version of bulk
     container: rust-musl
     prerequisites: [make]
-    run: [/work/target/debug/tin]
+    run: [/work/target/debug/bulk]
 
   package: !Command
     description: Package itself
@@ -34,16 +34,16 @@ commands:
       rm -rf pkg
       mkdir pkg
       cargo build --target=x86_64-unknown-linux-musl --release
-      install -D target/x86_64-unknown-linux-musl/release/tin pkg/usr/bin/tin
+      install -D target/x86_64-unknown-linux-musl/release/bulk pkg/usr/bin/bulk
       # pack by itself
-      /work/pkg/usr/bin/tin pack --config ./package.yaml --dir ./pkg
+      /work/pkg/usr/bin/bulk pack --config ./package.yaml --dir ./pkg
 
   repo-add: !Command
     description: "Add `*.deb` to test repository in dist/repos"
     container: rust-musl
     prerequisites: [make]
     run: |
-      target/debug/tin repo-add \
+      target/debug/bulk repo-add \
         --config ./package.yaml --repository-base ./dist/repos \
         dist/*.deb
 
@@ -51,11 +51,11 @@ commands:
     container: trusty-install
     write-mode: transient-hard-link-copy
     run: &installtest |
-      /usr/bin/tin --help
+      /usr/bin/bulk --help
       webfsd -r /work/dist/repos -p 7777 &
       apt-get update
-      apt-get install -y --allow-unauthenticated tin=0.1.0
-      /usr/bin/tin --help
+      apt-get install -y --allow-unauthenticated bulk
+      /usr/bin/bulk --help
 
   _test-xenial: !Command
     container: xenial-install
@@ -112,7 +112,7 @@ containers:
     - !UbuntuRepo
       url: http://localhost:7777/
       suite: static
-      components: [tin]
+      components: [bulk-testing]
 
   xenial-install:
     setup:
@@ -122,4 +122,4 @@ containers:
     - !UbuntuRepo
       url: http://localhost:7777/
       suite: static
-      components: [tin]
+      components: [bulk-testing]
