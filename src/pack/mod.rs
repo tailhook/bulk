@@ -75,10 +75,6 @@ fn _pack(config: &Path, dir: &Path, destdir: &Path) -> Result<(), String> {
             .map_err(|e| format!("Can't create destination dir: {}", e)));
     }
 
-    println!("{:?} -> {:?}: {:#?}", dir, dest, meta);
-
-    // Reproducible builds spec
-
     let tmpname = dest.with_extension(".deb.tmp");
     try!(write_deb(&tmpname, dir, &meta)
          .map_err(|e| format!("Error writing deb: {}", e)));

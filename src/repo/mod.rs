@@ -52,8 +52,6 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path)
             }
         }
     }
-    println!("{:#?}", debian);
-    // TODO(tailhook) copy files
     // TODO(tailhook) retention
     try!(debian.write());
     // TODO(tailhook) remove removed files
