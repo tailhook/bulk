@@ -21,6 +21,7 @@ unicase = "1.4.0"
 log = "0.3.6"
 env_logger = "0.3.3"
 sha2 = "0.1.2"
+time = "0.1.35"
 
 [[bin]]
 name = "tin"

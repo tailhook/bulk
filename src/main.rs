@@ -4,6 +4,7 @@ extern crate tar;
 extern crate scan_dir;
 extern crate rustc_serialize;
 extern crate sha2;
+extern crate time;
 extern crate flate2;
 extern crate regex;
 extern crate unicase;
@@ -17,6 +18,7 @@ mod config;
 mod pack;
 mod repo;
 mod deb_ext;
+mod hash_file;
 
 use std::str::FromStr;
 

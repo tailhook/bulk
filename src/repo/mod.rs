@@ -40,7 +40,8 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path)
                 (RepositoryType::debian, &Some(ref suite), &Some(ref comp))
                 => {
                     for p in matching {
-                        try!(debian.open(suite, comp, &p.arch)).add_package(p);
+                        let mut cmp = try!(debian.open(suite, comp, &p.arch));
+                        try!(cmp.add_package(p));
                     }
                 }
                 (RepositoryType::debian, _, _) => {
@@ -56,7 +57,7 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path)
     // TODO(tailhook) retention
     try!(debian.write());
     // TODO(tailhook) remove removed files
-    return Err("not implemented".into());
+    Ok(())
 }
 
 

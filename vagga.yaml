@@ -47,6 +47,21 @@ commands:
         --config ./package.yaml --repository-base ./dist/repos \
         dist/*.deb
 
+  _test-trusty: !Command
+    container: trusty-install
+    write-mode: transient-hard-link-copy
+    run: &installtest |
+      /usr/bin/tin --help
+      webfsd -r /work/dist/repos -p 7777 &
+      apt-get update
+      apt-get install -y --allow-unauthenticated tin=0.1.0
+      /usr/bin/tin --help
+
+  _test-xenial: !Command
+    container: xenial-install
+    write-mode: transient-hard-link-copy
+    run: *installtest
+
 containers:
 
   rust-musl:
@@ -88,3 +103,23 @@ containers:
 
     # For packaging
     - !Install [git]
+
+  trusty-install:
+    setup:
+    - !Ubuntu trusty
+    - !UbuntuUniverse
+    - !Install [webfs]
+    - !UbuntuRepo
+      url: http://localhost:7777/
+      suite: static
+      components: [tin]
+
+  xenial-install:
+    setup:
+    - !Ubuntu xenial
+    - !UbuntuUniverse
+    - !Install [webfs]
+    - !UbuntuRepo
+      url: http://localhost:7777/
+      suite: static
+      components: [tin]
