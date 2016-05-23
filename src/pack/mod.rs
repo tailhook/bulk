@@ -112,7 +112,7 @@ pub fn pack(args: Vec<String>) {
     match _pack(&config, &dir, &destdir) {
         Ok(()) => {}
         Err(text) => {
-            writeln!(&mut stderr(), "{}", text).ok();
+            writeln!(&mut stderr(), "Error: {}", text).ok();
             exit(1);
         }
     }

@@ -23,6 +23,10 @@ env_logger = "0.3.3"
 sha2 = "0.1.2"
 time = "0.1.35"
 
+[dependencies.quick-error]
+git = "http://github.com/tailhook/quick-error"
+branch = "context2"
+
 [[bin]]
 name = "bulk"
 path = "src/main.rs"

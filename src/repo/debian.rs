@@ -1,5 +1,6 @@
 use std::io::{self, Write, BufWriter};
 use std::fs::{File, create_dir_all, rename, copy, metadata};
+use std::num::ParseIntError;
 use std::path::{PathBuf, Path};
 use std::error::Error;
 use std::collections::{BTreeSet, BTreeMap, HashMap};
@@ -8,10 +9,12 @@ use time::now_utc;
 use sha2::sha2::Sha256;
 use sha2::digest::Digest;
 use unicase::UniCase;
+use quick_error::ResultExt;
 
 use hash_file::hash_file;
 use deb_ext::WriteDebExt;
 use repo::metadata::PackageMeta;
+use repo::deb::parse_control;
 
 
 #[derive(Debug)]
@@ -55,7 +58,87 @@ pub struct Repository {
     files: HashMap<PathBuf, FileInfo>,
 }
 
+quick_error! {
+    #[derive(Debug)]
+    pub enum ReleaseFileRead {
+        Io(err: io::Error) {
+            from()
+            description("io error")
+            display("io error: {}", err)
+        }
+        AbsentField(field: &'static str) {
+            description("required field is absent")
+            display("field {:?} is absent", field)
+        }
+        ExcessiveControlData {
+            description("more than one control data in Releases file")
+        }
+        FileSize(err: ParseIntError) {
+            from()
+            display("error parsing file size: {}", err)
+            description("error parsing file size")
+        }
+        InvalidHashLine {
+            description("one of the lines of SHA256 has invalid format")
+        }
+    }
+}
+
+quick_error! {
+    #[derive(Debug)]
+    pub enum RepositoryError {
+        Release(path: PathBuf, err: ReleaseFileRead) {
+            description("can't open Release file")
+            display("can't open {:?}: {}", path, err)
+            context(path: AsRef<Path>, err: ReleaseFileRead)
+                -> (path.as_ref().to_path_buf(), err)
+        }
+    }
+}
+
 impl Release {
+    fn read(path: &Path) -> Result<Release, ReleaseFileRead> {
+        use self::ReleaseFileRead::*;
+        let mut datas = try!(parse_control(try!(File::open(path))));
+        if datas.len() != 1 {
+            return Err(ExcessiveControlData);
+        }
+        let mut data = datas.pop().unwrap();
+        let codename = try!(data.remove(&"Codename".into())
+                            .ok_or(AbsentField("Codename")));
+        let architectures = try!(data.remove(&"Architectures".into())
+                               .ok_or(AbsentField("Architectures")))
+                               .split_whitespace()
+                               .map(ToString::to_string).collect();
+        let components = try!(data.remove(&"Components".into())
+                               .ok_or(AbsentField("Components")))
+                               .split_whitespace()
+                               .map(ToString::to_string).collect();
+        let files = data.get(&"SHA256".into()).map(|x| &x[..]).unwrap_or("")
+            .split("\n");
+        let mut hashsums = BTreeMap::new();
+        for line in files {
+            let line = line.trim();
+            if line == "" { continue; }
+            let mut iter = line.split_whitespace();
+            match (iter.next(), iter.next(), iter.next(), iter.next()) {
+                (Some(hash), Some(size), Some(fname), None) => {
+                    let size = try!(size.parse());
+                    hashsums.insert(fname.to_string(),
+                                    (size, hash.to_string()));
+                }
+                _ => {
+                    return Err(InvalidHashLine);
+                }
+            }
+        }
+        Ok(Release {
+            codename: codename,
+            architectures: architectures,
+            components: components,
+            sha256: hashsums,
+        })
+    }
     fn output<W: Write>(&self, out: &mut W) -> io::Result<()> {
         try!(out.write_kv("Codename", &self.codename));
         // TODO(tailhook) better use latest date from packages
@@ -150,15 +233,24 @@ impl Repository {
         }
     }
     pub fn open(&mut self, suite: &str, component: &str, arch: &str)
-        -> io::Result<Component>
+        -> Result<Component, RepositoryError>
     {
-        let s = self.suites.entry(String::from(suite))
-            .or_insert_with(|| Release {
-                codename: String::from(suite),
-                architectures: BTreeSet::new(),
-                components: BTreeSet::new(),
-                sha256: BTreeMap::new(),
-            });
+        if !self.suites.contains_key(suite) {
+            let release_file = self.root.join("dists").join(suite)
+                               .join("Release");
+            let rel = if release_file.exists() {
+                try!(Release::read(&release_file).context(&release_file))
+            } else {
+                Release {
+                    codename: String::from(suite),
+                    architectures: BTreeSet::new(),
+                    components: BTreeSet::new(),
+                    sha256: BTreeMap::new(),
+                }
+            };
+            self.suites.insert(String::from(suite), rel);
+        }
+        let s = self.suites.get_mut(suite).unwrap();
         s.architectures.insert(String::from(arch));
         s.components.insert(String::from(component));
 

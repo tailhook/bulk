@@ -83,7 +83,7 @@ pub fn repo_add(args: Vec<String>) {
     match _repo_add(&config, &packages, &repo_dir) {
         Ok(()) => {}
         Err(err) => {
-            writeln!(&mut stderr(), "{}", err).ok();
+            writeln!(&mut stderr(), "Error: {}", err).ok();
             exit(1);
         }
     }
