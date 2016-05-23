@@ -86,11 +86,37 @@ quick_error! {
 
 quick_error! {
     #[derive(Debug)]
+    pub enum PackagesRead {
+        Io(err: io::Error) {
+            from()
+            description("io error")
+            display("io error: {}", err)
+        }
+        AbsentField(field: &'static str) {
+            description("required field is absent")
+            display("field {:?} is absent", field)
+        }
+        FileSize(err: ParseIntError) {
+            from()
+            display("error parsing file size: {}", err)
+            description("error parsing file size")
+        }
+    }
+}
+
+quick_error! {
+    #[derive(Debug)]
     pub enum RepositoryError {
         Release(path: PathBuf, err: ReleaseFileRead) {
             description("can't open Release file")
             display("can't open {:?}: {}", path, err)
             context(path: AsRef<Path>, err: ReleaseFileRead)
+                -> (path.as_ref().to_path_buf(), err)
+        }
+        Packages(path: PathBuf, err: PackagesRead) {
+            description("can't open Packages file")
+            display("can't open {:?}: {}", path, err)
+            context(path: AsRef<Path>, err: PackagesRead)
                 -> (path.as_ref().to_path_buf(), err)
         }
     }
@@ -159,6 +185,28 @@ impl Release {
 }
 
 impl Packages {
+    fn read(path: &Path) -> Result<Packages, PackagesRead> {
+        use self::PackagesRead::*;
+        try!(parse_control(try!(File::open(path))))
+        .into_iter().map(|mut control| {
+            Ok(Package {
+                name: try!(control.remove(&"Package".into())
+                           .ok_or(AbsentField("Package"))),
+                version: try!(control.remove(&"Version".into())
+                           .ok_or(AbsentField("Version"))),
+                architecture: try!(control.remove(&"Architecture".into())
+                           .ok_or(AbsentField("Architecture"))),
+                filename: try!(control.remove(&"Filename".into())
+                           .ok_or(AbsentField("Filename"))).into(),
+                size: try!(try!(control.remove(&"Size".into())
+                           .ok_or(AbsentField("Size"))).parse()),
+                sha256: try!(control.remove(&"SHA256".into())
+                           .ok_or(AbsentField("SHA256"))),
+                metadata: control.into_iter().collect(),
+            })
+        }).collect::<Result<Vec<Package>, PackagesRead>>()
+        .map(Packages)
+    }
     fn output<W: Write>(&self, out: &mut W) -> io::Result<()> {
         for p in &self.0 {
             try!(out.write_kv("Package", &p.name));
@@ -254,10 +302,19 @@ impl Repository {
         s.architectures.insert(String::from(arch));
         s.components.insert(String::from(component));
 
-        let packages = self.components.entry(
-                (String::from(suite), String::from(component),
-                 String::from(arch))
-            ).or_insert_with(Packages::new);
+        let triple = (String::from(suite), String::from(component),
+                      String::from(arch));
+        if !self.components.contains_key(&triple) {
+            let packages_file = self.root.join("dists").join(suite)
+                .join(component).join(format!("binary-{}/Packages", arch));
+            let packages = if packages_file.exists() {
+                try!(Packages::read(&packages_file).context(&packages_file))
+            } else {
+                Packages::new()
+            };
+            self.components.insert(triple.clone(), packages);
+        }
+        let packages = self.components.get_mut(&triple).unwrap();
         Ok(Component(packages, &mut self.files))
     }
     pub fn write(mut self) -> io::Result<()> {

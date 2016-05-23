@@ -55,7 +55,7 @@ commands:
       webfsd -r /work/dist/repos -p 7777 &
       apt-get update
       apt-get install -y --allow-unauthenticated bulk
-      /usr/bin/bulk --help
+      /usr/bin/bulk --version
 
   _test-xenial: !Command
     container: xenial-install
