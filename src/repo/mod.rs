@@ -9,13 +9,14 @@ use std::error::Error;
 use std::process::exit;
 
 use regex::Regex;
-use argparse::{ArgumentParser, Parse, Collect};
+use argparse::{ArgumentParser, Parse, Collect, StoreConst};
 
 use config::{Config, RepositoryType};
 use repo::metadata::gather_metadata;
 
 
-fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path)
+fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
+    on_conflict: debian::ConflictResolution)
     -> Result<(), Box<Error>>
 {
     let packages = try!(packages.iter().map(gather_metadata)
@@ -41,7 +42,7 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path)
                 => {
                     for p in matching {
                         let mut cmp = try!(debian.open(suite, comp, &p.arch));
-                        try!(cmp.add_package(p));
+                        try!(cmp.add_package(p, on_conflict));
                     }
                 }
                 (RepositoryType::debian, _, _) => {
@@ -63,6 +64,7 @@ pub fn repo_add(args: Vec<String>) {
     let mut config = PathBuf::from("package.yaml");
     let mut repo_dir = PathBuf::new();
     let mut packages = Vec::<String>::new();
+    let mut conflict = debian::ConflictResolution::Error;
     {
         let mut ap = ArgumentParser::new();
         ap.refer(&mut config)
@@ -71,6 +73,13 @@ pub fn repo_add(args: Vec<String>) {
         ap.refer(&mut repo_dir)
             .add_option(&["-D", "--repository-base"], Parse,
                 "Directory where repositories are stored");
+        ap.refer(&mut conflict)
+            .add_option(&["--skip-existing"],
+                StoreConst(debian::ConflictResolution::Keep),
+                "Skip package if it's already in the repository")
+            .add_option(&["--replace-existing"],
+                StoreConst(debian::ConflictResolution::Replace),
+                "Replace package if it's already in the repository");
         ap.refer(&mut packages)
             .add_argument("packages", Collect,
                 "Package file names to add");
@@ -80,7 +89,7 @@ pub fn repo_add(args: Vec<String>) {
         }
     }
 
-    match _repo_add(&config, &packages, &repo_dir) {
+    match _repo_add(&config, &packages, &repo_dir, conflict) {
         Ok(()) => {}
         Err(err) => {
             writeln!(&mut stderr(), "Error: {}", err).ok();

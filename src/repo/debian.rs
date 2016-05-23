@@ -2,7 +2,6 @@ use std::io::{self, Write, BufWriter};
 use std::fs::{File, create_dir_all, rename, copy, metadata};
 use std::num::ParseIntError;
 use std::path::{PathBuf, Path};
-use std::error::Error;
 use std::collections::{BTreeSet, BTreeMap, HashMap};
 
 use time::now_utc;
@@ -37,7 +36,7 @@ pub struct Package {
 }
 
 #[derive(Debug)]
-pub struct Packages(Vec<Package>);
+pub struct Packages(BTreeSet<Package>);
 
 #[derive(Debug)]
 struct FileInfo {
@@ -56,6 +55,13 @@ pub struct Repository {
     suites: HashMap<String, Release>,
     components: HashMap<(String, String, String), Packages>,
     files: HashMap<PathBuf, FileInfo>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ConflictResolution {
+    Error,
+    Keep,
+    Replace,
 }
 
 quick_error! {
@@ -107,6 +113,11 @@ quick_error! {
 quick_error! {
     #[derive(Debug)]
     pub enum RepositoryError {
+        PackageConflict(pkg: Package) {
+            description("package we are trying to add is already in repo")
+            display("package {}-{}-{} is already in repository",
+                pkg.name, pkg.version, pkg.architecture)
+        }
         Release(path: PathBuf, err: ReleaseFileRead) {
             description("can't open Release file")
             display("can't open {:?}: {}", path, err)
@@ -119,6 +130,28 @@ quick_error! {
             context(path: AsRef<Path>, err: PackagesRead)
                 -> (path.as_ref().to_path_buf(), err)
         }
+    }
+}
+
+impl ::std::cmp::PartialEq for Package {
+    fn eq(&self, other: &Package) -> bool {
+        (&self.name, &self.version, &self.architecture)
+        .eq(&(&other.name, &other.version, &other.architecture))
+    }
+}
+
+impl ::std::cmp::PartialOrd for Package {
+    fn partial_cmp(&self, other: &Package) -> Option<::std::cmp::Ordering> {
+        (&self.name, &self.version, &self.architecture)
+        .partial_cmp(&(&other.name, &other.version, &other.architecture))
+    }
+}
+
+impl ::std::cmp::Eq for Package {}
+impl ::std::cmp::Ord for Package {
+    fn cmp(&self, other: &Package) -> ::std::cmp::Ordering {
+        (&self.name, &self.version, &self.architecture)
+        .cmp(&(&other.name, &other.version, &other.architecture))
     }
 }
 
@@ -204,7 +237,7 @@ impl Packages {
                            .ok_or(AbsentField("SHA256"))),
                 metadata: control.into_iter().collect(),
             })
-        }).collect::<Result<Vec<Package>, PackagesRead>>()
+        }).collect::<Result<BTreeSet<Package>, PackagesRead>>()
         .map(Packages)
     }
     fn output<W: Write>(&self, out: &mut W) -> io::Result<()> {
@@ -226,14 +259,15 @@ impl Packages {
         Ok(())
     }
     pub fn new() -> Packages {
-        Packages(Vec::new())
+        Packages(BTreeSet::new())
     }
 }
 
 
 impl<'a> Component<'a> {
-    pub fn add_package(&mut self, pack: &PackageMeta)
-        -> Result<(), Box<Error>>
+    pub fn add_package(&mut self, pack: &PackageMeta,
+        on_conflict: ConflictResolution)
+        -> Result<(), RepositoryError>
     {
         let info = self.1.entry(pack.filename.clone())
             .or_insert_with(|| {
@@ -257,7 +291,7 @@ impl<'a> Component<'a> {
                     size: size,
                 }
             });
-        (self.0).0.push(Package {
+        let pkg = Package {
             name: pack.name.clone(),
             version: pack.version.clone(),
             architecture: pack.arch.clone(),
@@ -266,8 +300,23 @@ impl<'a> Component<'a> {
             size: info.size,
             metadata: pack.info.iter()
                 .map(|(k, v)| (k.clone(), v.clone())).collect(),
-        });
-        Ok(())
+        };
+        if (self.0).0.contains(&pkg) {
+            use self::ConflictResolution::*;
+            match on_conflict {
+                Error => Err(RepositoryError::PackageConflict(pkg)),
+                Keep => Ok(()),
+                Replace => {
+                    // TODO(tailhook) replace with .replace()
+                    (self.0).0.remove(&pkg);
+                    (self.0).0.insert(pkg);
+                    Ok(())
+                }
+            }
+        } else {
+            (self.0).0.insert(pkg);
+            Ok(())
+        }
     }
 }
 

@@ -42,10 +42,11 @@ commands:
     description: "Add `*.deb` to test repository in dist/repos"
     container: rust-musl
     prerequisites: [make]
+    accepts-arguments: true
     run: |
       target/debug/bulk repo-add \
         --config ./package.yaml --repository-base ./dist/repos \
-        dist/*.deb
+        dist/*.deb "$@"
 
   _test-trusty: !Command
     container: trusty-install
