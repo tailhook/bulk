@@ -10,6 +10,7 @@ use sha2::digest::Digest;
 use unicase::UniCase;
 use quick_error::ResultExt;
 
+use version::Version;
 use hash_file::hash_file;
 use deb_ext::WriteDebExt;
 use repo::metadata::PackageMeta;
@@ -27,7 +28,7 @@ pub struct Release {
 #[derive(Debug)]
 pub struct Package {
     name: String,
-    version: String,
+    version: Version<String>,
     architecture: String,
     filename: PathBuf,
     size: u64,
@@ -36,7 +37,8 @@ pub struct Package {
 }
 
 #[derive(Debug)]
-pub struct Packages(BTreeSet<Package>);
+pub struct Packages(BTreeMap<(String, String),
+                             BTreeMap<Version<String>, Package>>);
 
 #[derive(Debug)]
 struct FileInfo {
@@ -133,28 +135,6 @@ quick_error! {
     }
 }
 
-impl ::std::cmp::PartialEq for Package {
-    fn eq(&self, other: &Package) -> bool {
-        (&self.name, &self.version, &self.architecture)
-        .eq(&(&other.name, &other.version, &other.architecture))
-    }
-}
-
-impl ::std::cmp::PartialOrd for Package {
-    fn partial_cmp(&self, other: &Package) -> Option<::std::cmp::Ordering> {
-        (&self.name, &self.version, &self.architecture)
-        .partial_cmp(&(&other.name, &other.version, &other.architecture))
-    }
-}
-
-impl ::std::cmp::Eq for Package {}
-impl ::std::cmp::Ord for Package {
-    fn cmp(&self, other: &Package) -> ::std::cmp::Ordering {
-        (&self.name, &self.version, &self.architecture)
-        .cmp(&(&other.name, &other.version, &other.architecture))
-    }
-}
-
 impl Release {
     fn read(path: &Path) -> Result<Release, ReleaseFileRead> {
         use self::ReleaseFileRead::*;
@@ -220,46 +200,54 @@ impl Release {
 impl Packages {
     fn read(path: &Path) -> Result<Packages, PackagesRead> {
         use self::PackagesRead::*;
-        try!(parse_control(try!(File::open(path))))
-        .into_iter().map(|mut control| {
-            Ok(Package {
-                name: try!(control.remove(&"Package".into())
-                           .ok_or(AbsentField("Package"))),
-                version: try!(control.remove(&"Version".into())
-                           .ok_or(AbsentField("Version"))),
-                architecture: try!(control.remove(&"Architecture".into())
-                           .ok_or(AbsentField("Architecture"))),
-                filename: try!(control.remove(&"Filename".into())
-                           .ok_or(AbsentField("Filename"))).into(),
-                size: try!(try!(control.remove(&"Size".into())
-                           .ok_or(AbsentField("Size"))).parse()),
-                sha256: try!(control.remove(&"SHA256".into())
-                           .ok_or(AbsentField("SHA256"))),
-                metadata: control.into_iter().collect(),
-            })
-        }).collect::<Result<BTreeSet<Package>, PackagesRead>>()
-        .map(Packages)
+        let mut coll = BTreeMap::new();
+        let items = try!(parse_control(try!(File::open(path))));
+        for mut control in items.into_iter() {
+            let name = try!(control.remove(&"Package".into())
+                           .ok_or(AbsentField("Package")));
+            let version = Version(try!(control.remove(&"Version".into())
+                           .ok_or(AbsentField("Version"))));
+            let architecture = try!(control.remove(&"Architecture".into())
+                           .ok_or(AbsentField("Architecture")));
+            coll.entry((name.clone(), architecture.clone()))
+                .or_insert_with(BTreeMap::new)
+                .insert(version.clone(), Package {
+                    name: name,
+                    version: version,
+                    architecture: architecture,
+                    filename: try!(control.remove(&"Filename".into())
+                               .ok_or(AbsentField("Filename"))).into(),
+                    size: try!(try!(control.remove(&"Size".into())
+                               .ok_or(AbsentField("Size"))).parse()),
+                    sha256: try!(control.remove(&"SHA256".into())
+                               .ok_or(AbsentField("SHA256"))),
+                    metadata: control.into_iter().collect(),
+                });
+        }
+        Ok(Packages(coll))
     }
     fn output<W: Write>(&self, out: &mut W) -> io::Result<()> {
-        for p in &self.0 {
-            try!(out.write_kv("Package", &p.name));
-            try!(out.write_kv("Version", &p.version));
-            try!(out.write_kv("Architecture", &p.architecture));
-            try!(out.write_kv("Filename",
-                &p.filename.to_str().expect("package name should be ascii")));
-            try!(out.write_kv("SHA256", &p.sha256));
-            try!(out.write_kv("Size", &format!("{}", p.size)));
-            for (k, v) in &p.metadata {
-                if *k != "Package" && *k != "Version" && *k != "Architecture" {
-                    try!(out.write_kv(k, v));
+        for versions in self.0.values() {
+            for p in versions.values() {
+                try!(out.write_kv("Package", &p.name));
+                try!(out.write_kv("Version", p.version.as_ref()));
+                try!(out.write_kv("Architecture", &p.architecture));
+                try!(out.write_kv("Filename",
+                    &p.filename.to_str().expect("package name should be ascii")));
+                try!(out.write_kv("SHA256", &p.sha256));
+                try!(out.write_kv("Size", &format!("{}", p.size)));
+                for (k, v) in &p.metadata {
+                    if *k != "Package" && *k != "Version" && *k != "Architecture" {
+                        try!(out.write_kv(k, v));
+                    }
                 }
+                try!(out.write_all(b"\n"));
             }
-            try!(out.write_all(b"\n"));
         }
         Ok(())
     }
     pub fn new() -> Packages {
-        Packages(BTreeSet::new())
+        Packages(BTreeMap::new())
     }
 }
 
@@ -293,7 +281,7 @@ impl<'a> Component<'a> {
             });
         let pkg = Package {
             name: pack.name.clone(),
-            version: pack.version.clone(),
+            version: Version(pack.version.clone()),
             architecture: pack.arch.clone(),
             filename: info.path.clone(),
             sha256: info.sha256.clone(),
@@ -301,20 +289,21 @@ impl<'a> Component<'a> {
             metadata: pack.info.iter()
                 .map(|(k, v)| (k.clone(), v.clone())).collect(),
         };
-        if (self.0).0.contains(&pkg) {
+        let component_arch = (pack.name.clone(), pack.arch.clone());
+        let versions = (self.0).0.entry(component_arch)
+            .or_insert_with(BTreeMap::new);
+        if versions.contains_key(&pkg.version) {
             use self::ConflictResolution::*;
             match on_conflict {
                 Error => Err(RepositoryError::PackageConflict(pkg)),
                 Keep => Ok(()),
                 Replace => {
-                    // TODO(tailhook) replace with .replace()
-                    (self.0).0.remove(&pkg);
-                    (self.0).0.insert(pkg);
+                    versions.insert(pkg.version.clone(), pkg);
                     Ok(())
                 }
             }
         } else {
-            (self.0).0.insert(pkg);
+            versions.insert(pkg.version.clone(), pkg);
             Ok(())
         }
     }

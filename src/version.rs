@@ -2,13 +2,26 @@ use std::str::CharIndices;
 use std::iter::{Peekable};
 use std::cmp::Ordering;
 
-pub struct Version<T: AsRef<str>>(T);
-pub struct Components<'a>(&'a str, Peekable<CharIndices<'a>>);
+#[derive(Debug, Clone)]
+pub struct Version<T: AsRef<str>>(pub T);
+struct Components<'a>(&'a str, Peekable<CharIndices<'a>>);
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub enum Component<'a> {
+enum Component<'a> {
     Numeric(u64),
     String(&'a str),
+}
+
+impl<T: AsRef<str>> ::std::fmt::Display for Version<T> {
+    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        self.0.as_ref().fmt(fmt)
+    }
+}
+
+impl<T: AsRef<str>> AsRef<str> for Version<T> {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
 }
 
 impl<T: AsRef<str>> Version<T> {
