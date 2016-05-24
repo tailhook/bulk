@@ -24,7 +24,8 @@ impl Validator for Value {
         let mut warnings = vec!();
         let (pos, kind, val) = match ast {
             Ast::Scalar(pos, _, kind, string) => {
-                let string = SHELL_REGEX.replace(&string, |caps: &Captures| {
+                let string = SHELL_REGEX.replace_all(&string, |caps: &Captures|
+                {
                     let expr = caps.at(1).unwrap();
                     let mut cache = CACHE.lock().unwrap();
                     if let Some(value) = cache.get(expr) {
