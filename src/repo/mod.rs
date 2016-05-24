@@ -30,10 +30,16 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
             Some(ref re) => Some(try!(Regex::new(re))),
             None => None,
         };
+        let skip_re = match repo.skip_version {
+            Some(ref re) => Some(try!(Regex::new(re))),
+            None => None,
+        };
         let matching = packages.iter()
             .filter(|p| {
                 version_re.as_ref().map(|x| x.is_match(&p.version))
-                .unwrap_or(true)
+                .unwrap_or(true) &&
+                !skip_re.as_ref().map(|x| x.is_match(&p.version))
+                .unwrap_or(false)
             })
             .collect::<Vec<_>>();
         if matching.len() > 0 {

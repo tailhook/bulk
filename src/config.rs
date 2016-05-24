@@ -30,6 +30,7 @@ pub struct Repository {
     pub architecture: Option<String>,
     pub keep_releases: Option<usize>,
     pub match_version: Option<String>,
+    pub skip_version: Option<String>,
 }
 
 #[derive(RustcDecodable, Clone, Debug)]
@@ -56,7 +57,8 @@ impl Config {
             .member("component", Value(true))
             .member("architecture", Value(true))
             .member("keep_releases", Numeric::new().optional())
-            .member("match_version", Value(true))))
+            .member("match_version", Value(true))
+            .member("skip_version", Value(true))))
     }
     pub fn parse_file(p: &Path) -> Result<Config, String> {
         parse_config(p, &Config::validator(), Default::default())
