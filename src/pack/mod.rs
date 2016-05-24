@@ -38,8 +38,9 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
             mtime, 0, 0, 0o100644, SIZE_AUTO));
         let creal = GzBuilder::new().write(control, Compression::Best);
         let mut arch = Archive::new(creal);
-        try!(arch.append_blob("control", mtime,
-            &format_deb_control(&meta)));
+        let mut buf = Vec::with_capacity(1024);
+        try!(format_deb_control(&mut buf, &meta));
+        try!(arch.append_blob("control", mtime, &buf));
         try!(arch.finish());
     }
     {

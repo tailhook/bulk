@@ -46,6 +46,7 @@ commands:
     run: |
       target/debug/bulk repo-add \
         --config ./package.yaml --repository-base ./dist/repos \
+        --replace-existing \
         dist/*.deb "$@"
 
   _test-trusty: !Command
@@ -62,6 +63,12 @@ commands:
     container: xenial-install
     write-mode: transient-hard-link-copy
     run: *installtest
+
+  full-cycle-test: !Command
+    description: "Build package, add to repo and install"
+    container: rust-musl
+    prerequisites: [package, repo-add, _test-trusty, _test-xenial]
+    run: [echo, "Done"]
 
 containers:
 

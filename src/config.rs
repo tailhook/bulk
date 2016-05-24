@@ -13,6 +13,7 @@ pub struct Metadata {
     pub short_description: String,
     pub long_description: String,
     pub version: String,
+    pub depends: Option<String>,
 }
 
 #[allow(non_camel_case_types)]
@@ -45,7 +46,8 @@ impl Config {
             .member("architecture", Value(false))
             .member("short_description", Value(false))
             .member("long_description", Value(false))
-            .member("version", Value(false)))
+            .member("version", Value(false))
+            .member("depends", Value(true)))
         .member("repositories", Sequence::new(Structure::new()
             .member("kind", Enum::new().allow_plain()
                 .option("debian", Nothing)
