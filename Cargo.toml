@@ -22,6 +22,7 @@ log = "0.3.6"
 env_logger = "0.3.3"
 sha2 = "0.1.2"
 time = "0.1.35"
+matches = "0.1.2"
 
 [dependencies.quick-error]
 git = "http://github.com/tailhook/quick-error"

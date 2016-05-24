@@ -10,6 +10,7 @@ extern crate regex;
 extern crate unicase;
 extern crate env_logger;
 #[macro_use] extern crate log;
+#[macro_use] extern crate matches;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate quick_error;
 
@@ -20,6 +21,7 @@ mod pack;
 mod repo;
 mod deb_ext;
 mod hash_file;
+mod version;
 
 use std::str::FromStr;
 
