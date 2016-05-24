@@ -355,6 +355,22 @@ impl Repository {
         let packages = self.components.get_mut(&triple).unwrap();
         Ok(Component(packages, &mut self.files))
     }
+    pub fn trim(&mut self, suite: &str, cmp: &str, limit: usize) {
+        assert!(limit > 0);
+        for (&(ref rs, ref rcmp, _), ref mut pkgs)
+            in self.components.iter_mut()
+        {
+            if rs == suite && rcmp == cmp {
+                for (_, ref mut collection) in pkgs.0.iter_mut() {
+                    while collection.len() > limit {
+                        let smallest = collection.keys()
+                            .next().unwrap().clone();
+                        collection.remove(&smallest);
+                    }
+                }
+            }
+        }
+    }
     pub fn write(mut self) -> io::Result<()> {
         if self.suites.len() == 0 && self.components.len() == 0 {
             return Ok(());

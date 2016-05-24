@@ -53,7 +53,16 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
             }
         }
     }
-    // TODO(tailhook) retention
+    for repo in cfg.repositories {
+        match (repo.kind, &repo.suite, &repo.component) {
+            (RepositoryType::debian, &Some(ref suite), &Some(ref comp)) => {
+                if let Some(limit) = repo.keep_releases {
+                    debian.trim(suite, comp, limit);
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
     try!(debian.write());
     // TODO(tailhook) remove removed files
     Ok(())
