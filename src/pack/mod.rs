@@ -66,7 +66,10 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
 }
 
 fn _pack(config: &Path, dir: &Path, destdir: &Path) -> Result<(), String> {
+    // Set variables that can be used by config scripts
+    env::set_var("pkgdir", dir);
     let cfg = try!(Config::parse_file(config));
+
     let meta = try!(populate(&cfg));
     // TODO(tailhook) not only debian
     let dest = destdir.join(format!("{}-{}_{}.deb",
