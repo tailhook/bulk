@@ -5,6 +5,9 @@ use quire::validate::{Sequence, Structure, Enum, Nothing, Numeric};
 use quire::parse_config;
 
 use expand::Value;
+use version::Version;
+use bulk_version::MinimumVersion;
+
 
 #[derive(RustcDecodable, Clone, Debug)]
 pub struct Metadata {
@@ -35,6 +38,7 @@ pub struct Repository {
 
 #[derive(RustcDecodable, Clone, Debug)]
 pub struct Config {
+    pub minimum_bulk: Version<String>,
     pub metadata: Metadata,
     pub repositories: Vec<Repository>,
 }
@@ -42,6 +46,8 @@ pub struct Config {
 impl Config {
     fn validator<'x>() -> Structure<'x> {
         Structure::new()
+        .member("minimum_bulk", MinimumVersion(
+            Version(env!("CARGO_PKG_VERSION"))))
         .member("metadata", Structure::new()
             .member("name", Value(false))
             .member("architecture", Value(false))

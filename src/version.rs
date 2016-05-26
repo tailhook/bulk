@@ -2,9 +2,17 @@ use std::str::CharIndices;
 use std::iter::{Peekable};
 use std::cmp::Ordering;
 
+use rustc_serialize::{Decodable, Decoder};
+
 #[derive(Debug, Clone)]
 pub struct Version<T: AsRef<str>>(pub T);
 struct Components<'a>(&'a str, Peekable<CharIndices<'a>>);
+
+impl Decodable for Version<String> {
+    fn decode<D: Decoder>(d: &mut D) -> Result<Self, D::Error> {
+        Decodable::decode(d).map(Version)
+    }
+}
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum Component<'a> {

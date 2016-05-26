@@ -22,6 +22,7 @@ mod repo;
 mod deb_ext;
 mod hash_file;
 mod version;
+mod bulk_version;
 
 use std::str::FromStr;
 
