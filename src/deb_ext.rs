@@ -17,9 +17,12 @@ pub trait WriteDebExt: Write {
 }
 
 fn _control_multiline(val: &str) -> String {
-    val
+    let mut val = val
         .replace("\n\n", "\n.\n")
-        .replace("\n", "\n ")
+        .replace("\n", "\n ");
+    let trimmed_len = val.trim_right().len();
+    val.truncate(trimmed_len);
+    return val;
 }
 
 impl<T: Write> WriteDebExt for T {}
