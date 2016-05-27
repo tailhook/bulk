@@ -1,4 +1,3 @@
-mod metadata;
 mod ar;
 mod tar;
 mod deb;
@@ -8,21 +7,22 @@ use std::io::{stdout, stderr, Write};
 use std::env;
 use std::fs::{File, create_dir, rename, remove_file};
 use std::path::{Path, PathBuf};
+use std::error::Error;
 use std::process::exit;
 
-use argparse::{ArgumentParser, Parse};
+use argparse::{ArgumentParser, Parse, ParseOption};
 use tar::{Builder as Archive};
 use flate2::{GzBuilder, Compression};
 use scan_dir;
 
+use ver;
 use config::{Config, Metadata};
 use self::ar::{ArArchive, SIZE_AUTO};
-use self::metadata::populate;
 use self::tar::ArchiveExt;
 use self::deb::format_deb_control;
 
 
-fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
+fn write_deb(dest: &Path, dir: &Path, meta: &Metadata, version: &String)
     -> Result<(), io::Error>
 {
     let mtime = env::var("SOURCE_DATE_EPOCH").ok()
@@ -39,7 +39,7 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
         let creal = GzBuilder::new().write(control, Compression::Best);
         let mut arch = Archive::new(creal);
         let mut buf = Vec::with_capacity(1024);
-        try!(format_deb_control(&mut buf, &meta));
+        try!(format_deb_control(&mut buf, &meta, version, "amd64"));
         try!(arch.append_blob("control", mtime, &buf));
         try!(arch.finish());
     }
@@ -65,22 +65,29 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata)
     Ok(())
 }
 
-fn _pack(config: &Path, dir: &Path, destdir: &Path) -> Result<(), String> {
-    // Set variables that can be used by config scripts
-    env::set_var("pkgdir", dir);
+fn _pack(config: &Path, dir: &Path, destdir: &Path, version: Option<String>)
+    -> Result<(), Box<Error>>
+{
     let cfg = try!(Config::parse_file(config));
 
-    let meta = try!(populate(&cfg));
+    let version = if let Some(ver) = version {
+        ver
+    } else {
+        try!(ver::get(&cfg, Path::new("."))).0
+    };
+
+
+    let ref meta = cfg.metadata;
     // TODO(tailhook) not only debian
     let dest = destdir.join(format!("{}-{}_{}.deb",
-        meta.name, meta.version, meta.architecture));
+        meta.name, version, "amd64"));
     if !destdir.exists() {
         try!(create_dir(&destdir)
             .map_err(|e| format!("Can't create destination dir: {}", e)));
     }
 
     let tmpname = dest.with_extension(".deb.tmp");
-    try!(write_deb(&tmpname, dir, &meta)
+    try!(write_deb(&tmpname, dir, &meta, &version)
          .map_err(|e| format!("Error writing deb: {}", e)));
     if dest.exists() {
         try!(remove_file(&dest)
@@ -88,6 +95,7 @@ fn _pack(config: &Path, dir: &Path, destdir: &Path) -> Result<(), String> {
     }
     try!(rename(&tmpname, &dest)
         .map_err(|e| format!("Can't rename deb to target place: {}", e)));
+    println!("Written {}", dest.display());
     Ok(())
 }
 
@@ -96,6 +104,7 @@ pub fn pack(args: Vec<String>) {
     let mut config = PathBuf::from("package.yaml");
     let mut dir = PathBuf::from("pkg");
     let mut destdir = PathBuf::from("dist");
+    let mut version = None;
     {
         let mut ap = ArgumentParser::new();
         ap.refer(&mut config)
@@ -107,13 +116,16 @@ pub fn pack(args: Vec<String>) {
         ap.refer(&mut destdir)
             .add_option(&["-D", "--dest-dir"], Parse,
                 "Directory to put package to");
+        ap.refer(&mut version)
+            .add_option(&["--package-version"], ParseOption,
+                "Force package version instead of discovering it.");
         match ap.parse(args, &mut stdout(), &mut stderr()) {
             Ok(()) => {}
             Err(x) => exit(x),
         }
     }
 
-    match _pack(&config, &dir, &destdir) {
+    match _pack(&config, &dir, &destdir, version) {
         Ok(()) => {}
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();

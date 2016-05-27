@@ -30,13 +30,14 @@ commands:
     description: Package itself
     container: rust-musl
     prerequisites: [make]
+    accepts-arguments: true
     run: |
       rm -rf pkg
       mkdir pkg
       cargo build --target=x86_64-unknown-linux-musl --release
       install -D target/x86_64-unknown-linux-musl/release/bulk pkg/usr/bin/bulk
       # pack by itself
-      /work/pkg/usr/bin/bulk pack --config ./package.yaml --dir ./pkg
+      /work/pkg/usr/bin/bulk pack --config ./package.yaml --dir ./pkg "$@"
 
   repo-add: !Command
     description: "Add `*.deb` to test repository in dist/repos"

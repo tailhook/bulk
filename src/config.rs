@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use quire::validate::{Sequence, Structure, Enum, Nothing, Numeric, Scalar};
 use quire::parse_config;
 
-use expand::Value;
 use version::Version;
 use bulk_version::MinimumVersion;
 
@@ -12,10 +11,8 @@ use bulk_version::MinimumVersion;
 #[derive(RustcDecodable, Clone, Debug)]
 pub struct Metadata {
     pub name: String,
-    pub architecture: String,
     pub short_description: String,
     pub long_description: String,
-    pub version: String,
     pub depends: Option<String>,
 }
 
@@ -30,7 +27,6 @@ pub struct Repository {
     pub kind: RepositoryType,
     pub suite: Option<String>,
     pub component: Option<String>,
-    pub architecture: Option<String>,
     pub keep_releases: Option<usize>,
     pub match_version: Option<String>,
     pub skip_version: Option<String>,
@@ -61,10 +57,8 @@ impl Config {
             Version(env!("CARGO_PKG_VERSION"))))
         .member("metadata", Structure::new()
             .member("name", Scalar::new())
-            .member("architecture", Scalar::new())
             .member("short_description", Scalar::new())
             .member("long_description", Scalar::new())
-            .member("version", Scalar::new())
             .member("depends", Scalar::new().optional()))
         .member("repositories", Sequence::new(Structure::new()
             .member("kind", Enum::new().allow_plain()
@@ -72,7 +66,6 @@ impl Config {
             )
             .member("suite", Scalar::new().optional())
             .member("component", Scalar::new().optional())
-            .member("architecture", Scalar::new().optional())
             .member("keep_releases", Numeric::new().optional())
             .member("match_version", Scalar::new().optional())
             .member("skip_version", Scalar::new().optional())))

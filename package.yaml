@@ -1,4 +1,5 @@
 minimum-bulk: v0.3.0
+
 metadata:
   name: bulk
   short-description: A package builder for multiple linux distributions
@@ -6,8 +7,6 @@ metadata:
     A single tool for creating packages for multiple linux distributions. The
     tool favors simplicity over ubiquity and is intended for use for
     containers. So it lacks some rarely useful features like install scripts.
-  version: $(git describe)
-  architecture: $(dpkg --print-architecture)
 
 repositories:
 

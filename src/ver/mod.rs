@@ -13,6 +13,10 @@ mod scanner;
 
 fn _get(config: &Path, dir: &Path) -> Result<Version<String>, Box<Error>> {
     let cfg = try!(Config::parse_file(&config));
+    get(&cfg, dir)
+}
+
+pub fn get(cfg: &Config, dir: &Path) -> Result<Version<String>, Box<Error>> {
     let mut result = Err("Version not found".into());
     for item in &cfg.versions {
         let scanner = try!(scanner::Scanner::new(&item)

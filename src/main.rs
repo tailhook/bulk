@@ -15,7 +15,6 @@ extern crate env_logger;
 #[macro_use] extern crate quick_error;
 
 
-mod expand;
 mod config;
 mod deb_ext;
 mod hash_file;
