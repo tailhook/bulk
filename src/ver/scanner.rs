@@ -1,6 +1,5 @@
 use std::io::{self, BufRead, BufReader};
 use std::fs::File;
-use std::iter;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -65,7 +64,7 @@ impl Scanner {
             regex: try!(re::compile(&cfg.regex)),
         })
     }
-    pub fn scan_file<F, P: AsRef<Path>>(&self, path: P, mut fun: F)
+    pub fn scan_file<F, P: AsRef<Path>>(&self, path: P, fun: F)
         -> Result<(), io::Error>
         where F: FnMut(usize, &str, Option<re::Captures>) -> bool,
     {

@@ -4,12 +4,10 @@ use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::process::exit;
 
-use regex::Regex;
 use config::{Config};
 use version::Version;
 use argparse::{ArgumentParser, Parse, StoreTrue};
 
-mod parse;
 mod scanner;
 
 
@@ -21,6 +19,7 @@ fn _get(config: &Path, dir: &Path) -> Result<Version<String>, Box<Error>> {
             .map_err(|e| format!("One of the regexps is wrong: {} for {:#?}",
                 e, cfg)));
         for file in item.file.iter().chain(&item.files) {
+            let file = dir.join(file);
             try!(scanner.scan_file(&file, |lineno, line, capt| {
                 if let Some(capt) = capt {
                     match capt.at(1) {
@@ -58,6 +57,7 @@ fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
             .map_err(|e| format!("One of the regexps is wrong: {} for {:#?}",
                 e, cfg)));
         for file in item.file.iter().chain(&item.files) {
+            let file = dir.join(file);
             try!(scanner.scan_file(&file, |lineno, line, capt| {
                 if let Some(capt) = capt {
                     match capt.at(1) {
@@ -143,6 +143,7 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
             .map_err(|e| format!("One of the regexps is wrong: {} for {:#?}",
                 e, cfg)));
         for file in item.file.iter().chain(&item.files) {
+            let file = dir.join(file);
             let mut tmp = file.as_os_str().to_owned();
             tmp.push(".tmp");
             let tmp = tmp.into();
