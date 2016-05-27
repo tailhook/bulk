@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
-pub use regex::{Regex, Error};
+pub use regex::{Regex, Error, Captures};
 
 
 lazy_static! {
