@@ -93,8 +93,9 @@ fn main() {
             Print(env!("CARGO_PKG_VERSION").to_string()),
             "Show version of bulk and exit");
         ap.refer(&mut command)
-            .add_argument("command", Store,
-                "Command to run. Supported commands: pack, repo-add");
+            .add_argument("command", Store, "
+                Command to run. Supported commands: \
+                pack, repo-add, get-version, set-version, check-version");
         ap.refer(&mut args)
             .add_argument("arguments", List,
                 "Arguments for the command");
@@ -105,7 +106,9 @@ fn main() {
     match command {
         Action::Help => {
             println!("Usage:");
-            println!("    bulk {{pack,repo-add}} [options]");
+            println!("    bulk \
+                {{pack,repo-add,get-version,set-verion,check-version}} \
+                [options]");
         }
         Action::Pack => {
             args.insert(0, "bulk pack".to_string());
