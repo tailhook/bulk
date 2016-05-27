@@ -27,3 +27,13 @@ repositories:
   suite: static
   component: bulk-testing
   keep-releases: 100
+
+versions:
+
+- file: Cargo.toml
+  block-start: ^\[package\]
+  block-end: ^\[.*\]
+  regex: ^version\s*=\s*"(\s*)"
+
+- file: package.yaml
+  regex: ^minimum-bulk:\s+v(\S+)

@@ -17,12 +17,15 @@ extern crate env_logger;
 
 mod expand;
 mod config;
-mod pack;
-mod repo;
 mod deb_ext;
 mod hash_file;
 mod version;
 mod bulk_version;
+mod re;
+
+mod repo;
+mod pack;
+mod ver;
 
 use std::str::FromStr;
 
@@ -33,6 +36,8 @@ enum Action {
     Help,
     Pack,
     RepoAdd,
+    GetVersion,
+    SetVersion,
 }
 
 impl FromStr for Action {
@@ -40,7 +45,9 @@ impl FromStr for Action {
     fn from_str(value: &str) -> Result<Action, ()> {
         match value {
             "help" => Ok(Action::Help),
+
             "pack" => Ok(Action::Pack),
+
             "repo-add" => Ok(Action::RepoAdd),
             "repo_add" => Ok(Action::RepoAdd),
             "repoadd" => Ok(Action::RepoAdd),
@@ -48,6 +55,21 @@ impl FromStr for Action {
             "add-to-repo" => Ok(Action::RepoAdd),
             "add_to_repo" => Ok(Action::RepoAdd),
             "addtorepo" => Ok(Action::RepoAdd),
+
+            "getversion" => Ok(Action::GetVersion),
+            "get-version" => Ok(Action::GetVersion),
+            "getver" => Ok(Action::GetVersion),
+            "get-ver" => Ok(Action::GetVersion),
+            "ver-get" => Ok(Action::GetVersion),
+            "version-get" => Ok(Action::GetVersion),
+            "verget" => Ok(Action::GetVersion),
+            "versionget" => Ok(Action::GetVersion),
+
+            "set-version" => Ok(Action::SetVersion),
+            "set-ver" => Ok(Action::SetVersion),
+            "setversion" => Ok(Action::SetVersion),
+            "setver" => Ok(Action::SetVersion),
+
             _ => Err(())
         }
     }
@@ -84,6 +106,14 @@ fn main() {
         Action::RepoAdd => {
             args.insert(0, "bulk repo-add".to_string());
             repo::repo_add(args);
+        }
+        Action::GetVersion => {
+            args.insert(0, "bulk get-version".to_string());
+            ver::get_version(args);
+        }
+        Action::SetVersion => {
+            args.insert(0, "bulk set-version".to_string());
+            ver::set_version(args);
         }
     }
 }

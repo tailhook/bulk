@@ -49,6 +49,12 @@ commands:
         --replace-existing \
         dist/*.deb "$@"
 
+  get-version: !Command
+    description: "Get version of this package (mostly to test bulk)"
+    container: rust-musl
+    prerequisites: [make]
+    run: [target/debug/bulk, get-version]
+
   _test-trusty: !Command
     container: trusty-install
     write-mode: transient-hard-link-copy
