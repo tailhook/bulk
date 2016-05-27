@@ -33,7 +33,7 @@ versions:
 - file: Cargo.toml
   block-start: ^\[package\]
   block-end: ^\[.*\]
-  regex: ^version\s*=\s*"(\s*)"
+  regex: ^version\s*=\s*"(\S+)"
 
 - file: package.yaml
   regex: ^minimum-bulk:\s+v(\S+)

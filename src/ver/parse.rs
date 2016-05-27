@@ -1,6 +1,7 @@
 use std::io::{self, BufRead, BufReader};
+use std::iter;
 use std::fs::{File};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use quick_error::ResultExt;
 
@@ -8,6 +9,9 @@ use config::VersionHolder;
 use version::Version;
 use re;
 
+
+type Lines<B> = iter::Enumerate<io::Lines<B>>;
+type Location = (PathBuf, usize, Version<String>);
 
 quick_error! {
     #[derive(Debug)]
@@ -21,8 +25,8 @@ quick_error! {
         NoCapture {
             description("version regex doesn't container capture group")
         }
-        CapturedEmptyVersion(line: String) {
-            display("captured empty version number in {:?}", line)
+        CapturedEmptyVersion(line: usize) {
+            display("{}: captured empty version number", line)
             description("captured empty version number")
         }
         Io(err: io::Error) {
@@ -33,13 +37,12 @@ quick_error! {
     }
 }
 
-
-pub fn _find_block_start<B: BufRead>(file: &mut B, cfg: &VersionHolder)
+fn _find_block_start<B: BufRead>(lines: &mut Lines<B>, cfg: &VersionHolder)
     -> Result<bool, Error>
 {
     if let Some(ref x) = cfg.block_start {
         let re = try!(re::compile(x).context(x));
-        for line in file.lines() {
+        for (n, line) in lines {
             let line = try!(line);
             if re.is_match(&line) {
                 return Ok(true);
@@ -54,13 +57,30 @@ pub fn _find_block_start<B: BufRead>(file: &mut B, cfg: &VersionHolder)
 pub fn get_first<P: AsRef<Path>>(file: P, cfg: &VersionHolder)
     -> Result<Option<Version<String>>, Error>
 {
+    Ok(try!(get_all(file, cfg)).pop().map(|(_, v)| v))
+}
+
+pub fn get_all<P: AsRef<Path>>(file: P, cfg: &VersionHolder)
+    -> Result<Vec<(usize, Version<String>)>, Error>
+{
     let mut f = match File::open(file) {
         Ok(x) => BufReader::new(x),
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+            return Ok(Vec::new());
+        }
         Err(e) => return Err(e.into()),
     };
-    if !try!(_find_block_start(&mut f, cfg)) {
-        return Ok(None);
+    let mut buf = Vec::new();
+    try!(scan_versions(&mut f.lines().enumerate(), cfg, &mut buf));
+    Ok(buf)
+}
+
+fn scan_versions<B: BufRead>(lines: &mut Lines<B>, cfg: &VersionHolder,
+    res: &mut Vec<(usize, Version<String>)>)
+    -> Result<(), Error>
+{
+    if !try!(_find_block_start(lines, cfg)) {
+        return Ok(());
     }
     let version_re = try!(re::compile(&cfg.regex).context(&cfg.regex));
     let block_re = if let Some(ref x) = cfg.block_end {
@@ -68,14 +88,16 @@ pub fn get_first<P: AsRef<Path>>(file: P, cfg: &VersionHolder)
     } else {
         None
     };
-    for line in f.lines() {
+    for (lineno, line) in lines {
         let line = try!(line);
         if let Some(capt) = version_re.captures(&line) {
             match capt.at(1) {
                 Some("") => {
-                    return Err(Error::CapturedEmptyVersion(line.clone()));
+                    return Err(Error::CapturedEmptyVersion(lineno));
                 }
-                Some(x) => return Ok(Some(Version(x.into()))),
+                Some(x) => {
+                    res.push((lineno, Version(x.into())));
+                }
                 None => {
                     return Err(Error::NoCapture);
                 }
@@ -85,5 +107,5 @@ pub fn get_first<P: AsRef<Path>>(file: P, cfg: &VersionHolder)
             break;
         }
     }
-    Ok(None)
+    Ok(())
 }

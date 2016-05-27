@@ -38,6 +38,7 @@ enum Action {
     RepoAdd,
     GetVersion,
     SetVersion,
+    CheckVersion,
 }
 
 impl FromStr for Action {
@@ -69,6 +70,13 @@ impl FromStr for Action {
             "set-ver" => Ok(Action::SetVersion),
             "setversion" => Ok(Action::SetVersion),
             "setver" => Ok(Action::SetVersion),
+            "ver-set" => Ok(Action::SetVersion),
+            "version-set" => Ok(Action::SetVersion),
+            "verset" => Ok(Action::SetVersion),
+            "versionset" => Ok(Action::SetVersion),
+
+            "check-version" => Ok(Action::CheckVersion),
+            "version-check" => Ok(Action::CheckVersion),
 
             _ => Err(())
         }
@@ -114,6 +122,10 @@ fn main() {
         Action::SetVersion => {
             args.insert(0, "bulk set-version".to_string());
             ver::set_version(args);
+        }
+        Action::CheckVersion => {
+            args.insert(0, "bulk check-version".to_string());
+            ver::check_version(args);
         }
     }
 }
