@@ -21,6 +21,9 @@ fn _get(config: &Path, dir: &Path) -> Result<Version<String>, Box<Error>> {
 
 pub fn get(cfg: &Config, dir: &Path) -> Result<Version<String>, Box<Error>> {
     for item in &cfg.versions {
+        if item.partial_version.is_some() { // can't get from partial version
+            continue;
+        }
         let scanner = try!(scanner::Scanner::new(&item)
             .map_err(|e| format!("One of the regexps is wrong: {} for {:#?}",
                 e, cfg)));
@@ -48,9 +51,12 @@ pub fn get(cfg: &Config, dir: &Path) -> Result<Version<String>, Box<Error>> {
 
 fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
     let cfg = try!(Config::parse_file(&config));
-    let mut prev = None;
+    let mut prev: Option<String> = None;
     let mut result = true;
-    for item in &cfg.versions {
+    // partial versions go after full
+    let lst = cfg.versions.iter().filter(|x| x.partial_version.is_none())
+        .chain(cfg.versions.iter().filter(|x| x.partial_version.is_some()));
+    for item in lst {
         let scanner = try!(scanner::Scanner::new(&item)
             .map_err(|e| format!("One of the regexps is wrong: {} for {:#?}",
                 e, cfg)));
@@ -70,12 +76,17 @@ fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
                             filename.display(), lineno, ver,
                             line.trim_right());
                         if let Some(ref pver) = prev {
-                            if pver != ver {
+                            let cver = scanner.partial.as_ref()
+                                .map(|re| re.captures(pver)
+                                    .expect("partial-version must match")
+                                    .at(0).unwrap())
+                                .unwrap_or(&pver[..]);
+                            if cver != ver {
                                 result = false;
                                 writeln!(&mut stderr(),
                                     "{}:{}: version conflict {} != {}",
                                     filename.display(), lineno,
-                                    ver, pver).ok();
+                                    ver, cver).ok();
                             }
                         } else {
                             prev = Some(ver.to_string());
@@ -127,7 +138,7 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
     files: &mut Vec<(PathBuf, PathBuf)>, force: bool)
     -> Result<(), Box<Error>>
 {
-    let mut prev = None;
+    let mut prev: Option<String> = None;
     let mut result = Ok(());
     let mut scanners = HashMap::new();
     for item in &cfg.versions {
@@ -157,22 +168,34 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
         let mut scanners = list.iter().map(Scanner::start).collect::<Vec<_>>();
         try!(Lines::iter(file).map(|res| {
             let (lineno, line) = try!(res);
-            let nline = scanners.iter_mut().fold(line, |line, x| {
-                match x.line(lineno, &line) {
+            let nline = scanners.iter_mut().fold(line, |line, citer| {
+                match citer.line(lineno, &line) {
                     Some((start, end)) => {
                         let ver = &line[start..end];
+
+                        let partver = citer.scanner().partial.as_ref()
+                            .map(|re| re.captures(version)
+                                .expect("partial-version must match")
+                                .at(0).unwrap())
+                            .unwrap_or(&version[..]);
+
                         let nline = String::from(&line[..start])
-                            + version + &line[end..];
+                            + partver + &line[end..];
 
                         println!("{}:{}: (v{} -> v{}) {}",
-                            filename.display(), lineno, ver, version,
+                            filename.display(), lineno, ver, partver,
                             nline.trim_right());
                         if let Some(ref pver) = prev {
-                            if pver != ver {
+                            let cver = citer.scanner().partial.as_ref()
+                                .map(|re| re.captures(pver)
+                                    .expect("partial-version must match")
+                                    .at(0).unwrap())
+                                .unwrap_or(&pver[..]);
+                            if cver != ver {
                                 let msg = format!(
                                     "{}:{}: version conflict {} != {}",
                                     filename.display(), lineno,
-                                    ver, pver);
+                                    ver, cver);
                                 if force {
                                     println!("{}", msg);
                                 } else {

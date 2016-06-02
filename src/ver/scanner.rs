@@ -10,6 +10,7 @@ pub struct Scanner {
     pub block_start: Option<Arc<re::Regex>>,
     pub block_end: Option<Arc<re::Regex>>,
     pub regex: Arc<re::Regex>,
+    pub partial: Option<Arc<re::Regex>>,
 }
 
 pub struct Lines<B: BufRead>(usize, B);
@@ -69,6 +70,10 @@ impl<'a> Iter<'a> {
         self.error.map(Err).unwrap_or(Ok(()))
     }
 
+    pub fn scanner(&self) -> &Scanner {
+        self.scanner
+    }
+
     pub fn line(&mut self, line_no: usize, line: &str)
         -> Option<(usize, usize)>
     {
@@ -121,6 +126,9 @@ impl Scanner {
                            Some(try!(re::compile(regex)))
                        } else { None },
             regex: try!(re::compile(&cfg.regex)),
+            partial: if let Some(ref regex) = cfg.partial_version {
+                           Some(try!(re::compile(regex)))
+                       } else { None },
         })
     }
     pub fn start(&self) -> Iter {
