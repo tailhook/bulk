@@ -5,12 +5,15 @@ Bulk
 Bulk is a super-simple packaging utility. It's similar to fpm_ but implemented
 in rust.
 
-All it can is package a directory of files into deb package. And it can build
-a debian repository from a list of packages.
+It does three things for you:
+
+* Makes directory of files into deb package
+* Maintains a number of repos (stable, testing...) from list of packages
+* Updates your version numbers
 
 .. _fpm: https://github.com/jordansissel/fpm
 
-:Status: Proof of Concept
+:Status: Alpha
 
 
 Why?
