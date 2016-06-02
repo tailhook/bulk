@@ -49,12 +49,12 @@ How To Use
 ==========
 
 Build program and install to some directory, say ``pkg``. Put some metadata
-into ``package.yaml``. Then pack it into a debian package::
+into ``bulk.yaml``. Then pack it into a debian package::
 
-    bulk pack --config package.yaml --dir pkg --dest-dir dist
+    bulk pack --config bulk.yaml --dir pkg --dest-dir dist
 
 And you will get a package in ``dist`` directory. You may find the example
-``package.yaml`` in this repository.
+``bulk.yaml`` in this repository.
 
 
 Building Packages
@@ -67,14 +67,14 @@ it looks like this::
     make
     rm -rf pkg
     make install DESTDIR=$(pwd)/pkg
-    bulk pack --config package.yaml --dir pkg --dest-dir dist
+    bulk pack --config bulk.yaml --dir pkg --dest-dir dist
 
 Or with new ``cargo install``::
 
     rm -rf pkg
     cargo install PACKAGE_NAME --root ./pkg/usr
     rm pkg/usr/.crates.toml
-    bulk pack --config package.yaml --dir pkg --dest-dir dist
+    bulk pack --config bulk.yaml --dir pkg --dest-dir dist
 
 This way you may package crate from crates.io.
 

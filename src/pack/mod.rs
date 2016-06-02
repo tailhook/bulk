@@ -101,7 +101,7 @@ fn _pack(config: &Path, dir: &Path, destdir: &Path, version: Option<String>)
 
 
 pub fn pack(args: Vec<String>) {
-    let mut config = PathBuf::from("package.yaml");
+    let mut config = PathBuf::from("bulk.yaml");
     let mut dir = PathBuf::from("pkg");
     let mut destdir = PathBuf::from("dist");
     let mut version = None;

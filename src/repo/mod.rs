@@ -76,7 +76,7 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
 
 
 pub fn repo_add(args: Vec<String>) {
-    let mut config = PathBuf::from("package.yaml");
+    let mut config = PathBuf::from("bulk.yaml");
     let mut repo_dir = PathBuf::new();
     let mut packages = Vec::<String>::new();
     let mut conflict = debian::ConflictResolution::Error;

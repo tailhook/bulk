@@ -227,7 +227,7 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
 }
 
 pub fn get_version(args: Vec<String>) {
-    let mut config = PathBuf::from("package.yaml");
+    let mut config = PathBuf::from("bulk.yaml");
     let mut dir = PathBuf::from(".");
     {
         let mut ap = ArgumentParser::new();
@@ -256,7 +256,7 @@ pub fn get_version(args: Vec<String>) {
 }
 
 pub fn set_version(args: Vec<String>) {
-    let mut config = PathBuf::from("package.yaml");
+    let mut config = PathBuf::from("bulk.yaml");
     let mut dir = PathBuf::from(".");
     let mut version = String::new();
     let mut dry_run = false;
@@ -296,7 +296,7 @@ pub fn set_version(args: Vec<String>) {
 }
 
 pub fn check_version(args: Vec<String>) {
-    let mut config = PathBuf::from("package.yaml");
+    let mut config = PathBuf::from("bulk.yaml");
     let mut dir = PathBuf::from(".");
     {
         let mut ap = ArgumentParser::new();
@@ -325,7 +325,7 @@ pub fn check_version(args: Vec<String>) {
 }
 
 pub fn with_version(args: Vec<String>) {
-    let mut config = PathBuf::from("package.yaml");
+    let mut config = PathBuf::from("bulk.yaml");
     let mut dir = PathBuf::from(".");
     let mut version = String::new();
     let mut cmdline = Vec::<String>::new();
