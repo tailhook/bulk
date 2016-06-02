@@ -68,6 +68,12 @@ commands:
     prerequisites: [make]
     run: [target/debug/bulk, set-version]
 
+  with-version: !Command
+    description: "Run command with version set (mostly to test bulk)"
+    container: rust-musl
+    prerequisites: [make]
+    run: [target/debug/bulk, with-version]
+
   _test-trusty: !Command
     container: trusty-install
     write-mode: transient-hard-link-copy

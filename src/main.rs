@@ -38,6 +38,7 @@ enum Action {
     GetVersion,
     SetVersion,
     CheckVersion,
+    WithVersion,
 }
 
 impl FromStr for Action {
@@ -76,6 +77,8 @@ impl FromStr for Action {
 
             "check-version" => Ok(Action::CheckVersion),
             "version-check" => Ok(Action::CheckVersion),
+
+            "with-version" => Ok(Action::WithVersion),
 
             _ => Err(())
         }
@@ -128,6 +131,10 @@ fn main() {
         Action::CheckVersion => {
             args.insert(0, "bulk check-version".to_string());
             ver::check_version(args);
+        }
+        Action::WithVersion => {
+            args.insert(0, "bulk with-version".to_string());
+            ver::with_version(args);
         }
     }
 }

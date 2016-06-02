@@ -2,12 +2,12 @@ use std::io::{self, stdout, stderr, Write, BufWriter, BufReader};
 use std::fs::{File, remove_file, rename};
 use std::path::{Path, PathBuf};
 use std::error::Error;
-use std::process::exit;
+use std::process::{Command, exit};
 use std::collections::HashMap;
 
 use config::{Config};
 use version::Version;
-use argparse::{ArgumentParser, Parse, StoreTrue};
+use argparse::{ArgumentParser, Parse, StoreTrue, List};
 
 use self::scanner::{Scanner, Lines, Iter};
 
@@ -106,7 +106,7 @@ fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
 }
 
 fn _set(config: &Path, dir: &Path, version: &str, dry_run: bool, force: bool)
-    -> Result<(), Box<Error>>
+    -> Result<String, Box<Error>>
 {
     let cfg = try!(Config::parse_file(&config));
     let mut buf = Vec::new();
@@ -136,7 +136,7 @@ fn _set(config: &Path, dir: &Path, version: &str, dry_run: bool, force: bool)
 
 fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
     files: &mut Vec<(PathBuf, PathBuf)>, force: bool)
-    -> Result<(), Box<Error>>
+    -> Result<String, Box<Error>>
 {
     let mut prev: Option<String> = None;
     let mut result = Ok(());
@@ -215,10 +215,14 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
         try!(scanners.into_iter().map(Iter::error)
             .collect::<Result<Vec<_>, _>>());
     }
-    if prev.is_none() {
-        Err(format!("No version found").into())
+    if let Some(ver) = prev {
+        if let Err(e) = result {
+            Err(e)
+        } else {
+            Ok(ver)
+        }
     } else {
-        result
+        Err(format!("No version found").into())
     }
 }
 
@@ -283,7 +287,7 @@ pub fn set_version(args: Vec<String>) {
     }
 
     match _set(&config, &dir, &version, dry_run, force) {
-        Ok(()) => {}
+        Ok(_) => {}
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
             exit(1);
@@ -316,6 +320,69 @@ pub fn check_version(args: Vec<String>) {
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
             exit(1);
+        }
+    }
+}
+
+pub fn with_version(args: Vec<String>) {
+    let mut config = PathBuf::from("package.yaml");
+    let mut dir = PathBuf::from(".");
+    let mut version = String::new();
+    let mut cmdline = Vec::<String>::new();
+    {
+        let mut ap = ArgumentParser::new();
+        ap.refer(&mut config)
+            .add_option(&["-c", "--config"], Parse,
+                "Package configuration file");
+        ap.refer(&mut dir)
+            .add_option(&["--base-dir"], Parse, "
+                Base directory for all paths in config. \
+                Current working directory by default.");
+        ap.refer(&mut version)
+            .add_argument("version", Parse, "Target version")
+            .required();
+        ap.refer(&mut cmdline)
+            .add_argument("cmd", List, "Command and arguments")
+            .required();
+        ap.stop_on_first_argument(true);
+
+        match ap.parse(args, &mut stdout(), &mut stderr()) {
+            Ok(()) => {}
+            Err(x) => exit(x),
+        }
+    }
+
+    let old = match _set(&config, &dir, &version, false, false) {
+        Ok(ver) => ver,
+        Err(text) => {
+            writeln!(&mut stderr(), "Error: {}", text).ok();
+            exit(99);
+        }
+    };
+
+    let mut cmd = Command::new(cmdline.remove(0));
+    cmd.args(&cmdline);
+    let result = cmd.status();
+
+    match _set(&config, &dir, &old, false, false) {
+        Ok(_) => {}
+        Err(text) => {
+            writeln!(&mut stderr(), "Error: {}", text).ok();
+            exit(99);
+        }
+    }
+
+    match result {
+        Ok(s) => {
+            if let Some(x) = s.code() {
+                exit(x);
+            } else {
+                exit(98);
+            }
+        }
+        Err(e) => {
+            writeln!(&mut stderr(), "Error running command: {}", e).ok();
+            exit(98);
         }
     }
 }
