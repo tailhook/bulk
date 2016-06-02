@@ -1,12 +1,15 @@
-use std::io::{stdout, stderr, Write, BufWriter};
+use std::io::{self, stdout, stderr, Write, BufWriter, BufReader};
 use std::fs::{File, remove_file, rename};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::process::exit;
+use std::collections::HashMap;
 
 use config::{Config};
 use version::Version;
 use argparse::{ArgumentParser, Parse, StoreTrue};
+
+use self::scanner::{Scanner, Lines, Iter};
 
 mod scanner;
 
@@ -17,39 +20,30 @@ fn _get(config: &Path, dir: &Path) -> Result<Version<String>, Box<Error>> {
 }
 
 pub fn get(cfg: &Config, dir: &Path) -> Result<Version<String>, Box<Error>> {
-    let mut result = Err("Version not found".into());
     for item in &cfg.versions {
         let scanner = try!(scanner::Scanner::new(&item)
             .map_err(|e| format!("One of the regexps is wrong: {} for {:#?}",
                 e, cfg)));
-        for file in item.file.iter().chain(&item.files) {
-            let file = dir.join(file);
-            try!(scanner.scan_file(&file, |lineno, line, capt| {
-                if let Some(capt) = capt {
-                    match capt.at(1) {
-                        Some("") => {
-                            result = Err(format!(
-                                "{}:{}: captured empty version in: {}",
-                                file.display(), lineno, line.trim_right())
-                                .into());
-                        }
-                        Some(x) => {
-                            result = Ok(Version(x.to_string()));
-                        }
-                        None => {
-                            result = Err(format!(
-                                "{}:{}: no version capture in regex {:?}",
-                                file.display(), lineno, item.regex)
-                                .into());
-                        }
+        for filename in item.file.iter().chain(&item.files) {
+            let file = match File::open(&dir.join(&filename)) {
+                Ok(i) => BufReader::new(i),
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => continue,
+                Err(e) => return Err(e.into()),
+            };
+            let mut iter = scanner.start();
+            for res in Lines::iter(file) {
+                let (lineno, line) = try!(res);
+                match iter.line(lineno, &line) {
+                    Some((start, end)) => {
+                        return Ok(Version(line[start..end].to_string()));
                     }
-                    return false;
+                    None => {}
                 }
-                return true;
-            }).map_err(|e| format!("{}: IO error: {}", file.display(), e)));
+            }
+            try!(iter.error());
         }
     }
-    return result;
+    return Err("Version not found".into());
 }
 
 fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
@@ -60,44 +54,37 @@ fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
         let scanner = try!(scanner::Scanner::new(&item)
             .map_err(|e| format!("One of the regexps is wrong: {} for {:#?}",
                 e, cfg)));
-        for file in item.file.iter().chain(&item.files) {
-            let file = dir.join(file);
-            try!(scanner.scan_file(&file, |lineno, line, capt| {
-                if let Some(capt) = capt {
-                    match capt.at(1) {
-                        Some("") => {
-                            result = false;
-                            writeln!(&mut stderr(),
-                                "{}:{}: captured empty version in: {}",
-                                file.display(), lineno, line.trim_right())
-                                .ok();
-                        }
-                        Some(ver) => {
-                            println!("{}:{}: (v{}) {}",
-                                file.display(), lineno, ver,
-                                line.trim_right());
-                            if let Some(ref pver) = prev {
-                                if pver != ver {
-                                    result = false;
-                                    writeln!(&mut stderr(),
-                                        "{}:{}: version conflict {} != {}",
-                                        file.display(), lineno,
-                                        ver, pver).ok();
-                                }
-                            } else {
-                                prev = Some(ver.to_string());
+        for filename in item.file.iter().chain(&item.files) {
+            let file = match File::open(&dir.join(&filename)) {
+                Ok(i) => BufReader::new(i),
+                Err(ref e) if e.kind() == io::ErrorKind::NotFound => continue,
+                Err(e) => return Err(e.into()),
+            };
+            let mut iter = scanner.start();
+            for res in Lines::iter(file) {
+                let (lineno, line) = try!(res);
+                match iter.line(lineno, &line) {
+                    Some((start, end)) => {
+                        let ver = &line[start..end];
+                        println!("{}:{}: (v{}) {}",
+                            filename.display(), lineno, ver,
+                            line.trim_right());
+                        if let Some(ref pver) = prev {
+                            if pver != ver {
+                                result = false;
+                                writeln!(&mut stderr(),
+                                    "{}:{}: version conflict {} != {}",
+                                    filename.display(), lineno,
+                                    ver, pver).ok();
                             }
-                        }
-                        None => {
-                            result = false;
-                            writeln!(&mut stderr(),
-                                "{}:{}: no version capture in regex {:?}",
-                                file.display(), lineno, item.regex).ok();
+                        } else {
+                            prev = Some(ver.to_string());
                         }
                     }
+                    None => {}
                 }
-                return true;
-            }).map_err(|e| format!("{}: IO error: {}", file.display(), e)));
+            }
+            try!(iter.error());
         }
     }
     if prev.is_none() {
@@ -142,76 +129,68 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
 {
     let mut prev = None;
     let mut result = Ok(());
+    let mut scanners = HashMap::new();
     for item in &cfg.versions {
         let scanner = try!(scanner::Scanner::new(&item)
             .map_err(|e| format!("One of the regexps is wrong: {} for {:#?}",
                 e, cfg)));
         for file in item.file.iter().chain(&item.files) {
-            let file = dir.join(file);
-            let mut tmp = file.as_os_str().to_owned();
-            tmp.push(".tmp");
-            let tmp = tmp.into();
-            let mut out = BufWriter::new(try!(File::create(&tmp)));
-            files.push((tmp, file.to_path_buf()));
-            try!(scanner.scan_file(&file, |lineno, line, capt| {
-                if let Some(capt) = capt {
-                    match capt.pos(1) {
-                        Some((a, b)) if a == b => {
-                            result = Err(format!(
-                                "{}:{}: captured empty version in: {}",
-                                file.display(), lineno, line.trim_right())
-                                .into());
-                            return false;
-                        }
-                        Some((start, end)) => {
-                            let ver = &line[start..end];
-                            let nline = String::from(&line[..start])
-                                + version + &line[end..];
-                            match out.write_all(nline.as_bytes()) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    result = Err(e.into());
-                                    return false;
-                                }
-                            }
-
-                            println!("{}:{}: (v{} -> v{}) {}",
-                                file.display(), lineno, ver, version,
-                                nline.trim_right());
-                            if let Some(ref pver) = prev {
-                                if pver != ver {
-                                    result = Err(format!(
-                                        "{}:{}: version conflict {} != {}",
-                                        file.display(), lineno,
-                                        ver, pver).into());
-                                    if !force {
-                                        return false;
-                                    }
-                                }
-                            } else {
-                                prev = Some(ver.to_string());
-                            }
-                        }
-                        None => {
-                            result = Err(format!(
-                                "{}:{}: no version capture in regex {:?}",
-                                file.display(), lineno, item.regex).into());
-                            return false;
-                        }
-                    }
-                    return true;
-                } else {
-                    match out.write_all(line.as_bytes()) {
-                        Ok(_) => {}
-                        Err(e) => {
-                            result = Err(e.into());
-                            return false;
-                        }
-                    }
-                }
-                return true;
-            }).map_err(|e| format!("{}: IO error: {}", file.display(), e)));
+            scanners.entry(file.clone())
+            .or_insert_with(Vec::new)
+            .push(scanner.clone())
         }
+    }
+    for (filename, list) in scanners {
+        let filename = dir.join(filename);
+        let mut tmp = filename.as_os_str().to_owned();
+        tmp.push(".tmp");
+        let tmp = tmp.into();
+        let file = match File::open(&filename) {
+            Ok(i) => BufReader::new(i),
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => continue,
+            Err(e) => return Err(e.into()),
+        };
+
+        let mut out = BufWriter::new(try!(File::create(&tmp)));
+        files.push((tmp, filename.to_path_buf()));
+
+        let mut scanners = list.iter().map(Scanner::start).collect::<Vec<_>>();
+        try!(Lines::iter(file).map(|res| {
+            let (lineno, line) = try!(res);
+            let nline = scanners.iter_mut().fold(line, |line, x| {
+                match x.line(lineno, &line) {
+                    Some((start, end)) => {
+                        let ver = &line[start..end];
+                        let nline = String::from(&line[..start])
+                            + version + &line[end..];
+
+                        println!("{}:{}: (v{} -> v{}) {}",
+                            filename.display(), lineno, ver, version,
+                            nline.trim_right());
+                        if let Some(ref pver) = prev {
+                            if pver != ver {
+                                let msg = format!(
+                                    "{}:{}: version conflict {} != {}",
+                                    filename.display(), lineno,
+                                    ver, pver);
+                                if force {
+                                    println!("{}", msg);
+                                } else {
+                                    result = Err(msg.into());
+                                }
+                            }
+                        } else {
+                            prev = Some(ver.to_string());
+                        }
+                        nline
+                    }
+                    None => line,
+                }
+            });
+            out.write_all(nline.as_bytes())
+        }).collect::<Result<Vec<()>, _>>());
+        try!(scanners.into_iter().map(Iter::error)
+            .collect::<Result<Vec<_>, _>>());
     }
     if prev.is_none() {
         Err(format!("No version found").into())

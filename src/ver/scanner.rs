@@ -1,19 +1,18 @@
-use std::io::{self, BufRead, BufReader};
-use std::fs::File;
-use std::path::Path;
+use std::io::{self, BufRead};
 use std::sync::Arc;
 
 use re;
 use config::VersionHolder;
 
 
+#[derive(Clone)]
 pub struct Scanner {
     pub block_start: Option<Arc<re::Regex>>,
     pub block_end: Option<Arc<re::Regex>>,
     pub regex: Arc<re::Regex>,
 }
 
-struct Lines<B: BufRead>(usize, B);
+pub struct Lines<B: BufRead>(usize, B);
 
 impl<B: BufRead> Iterator for Lines<B> {
     type Item = io::Result<(usize, String)>;
@@ -31,24 +30,84 @@ impl<B: BufRead> Iterator for Lines<B> {
     }
 }
 
-fn _find_block_start<B: BufRead, F>(lines: &mut Lines<B>,
-    bstart: &Option<Arc<re::Regex>>, fun: &mut F)
-    -> Result<bool, io::Error>
-    where F: FnMut(usize, &str, Option<re::Captures>) -> bool
-{
-    if let Some(ref re) = *bstart {
-        for item in lines {
-            let (n, line) = try!(item);
-            if !fun(n, &line, None) {
-                return Ok(false);
-            }
-            if re.is_match(&line) {
-                return Ok(true);
-            }
+impl<B:BufRead> Lines<B> {
+    pub fn iter(file: B) -> Lines<B> {
+        Lines(0, file)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum State {
+    Prefix,
+    Body,
+    Suffix,
+}
+
+pub struct Iter<'a> {
+    scanner: &'a Scanner,
+    state: State,
+    error: Option<Error>,
+}
+
+quick_error! {
+    #[derive(Debug)]
+    pub enum Error {
+        EmptyVersion(line_no: usize) {
+            display("{}: empty version string captured", line_no)
+            description("empty version")
         }
-        Ok(false)
-    } else {
-        Ok(true)
+        NoCapture(line_no: usize) {
+            display("{}: no capture in regex, probably bad regex", line_no)
+            description("no capture in regex, probably bad regex")
+        }
+    }
+}
+
+impl<'a> Iter<'a> {
+
+    pub fn error(self) -> Result<(), Error> {
+        self.error.map(Err).unwrap_or(Ok(()))
+    }
+
+    pub fn line(&mut self, line_no: usize, line: &str)
+        -> Option<(usize, usize)>
+    {
+        use self::State::*;
+        use self::Error::*;
+        if self.error.is_some() {
+            return None;
+        }
+        match self.state {
+            Prefix => {
+                if self.scanner.block_start.as_ref().unwrap().is_match(line) {
+                    self.state = Body;
+                }
+                None
+            }
+            Body => match self.scanner.regex.captures(line) {
+                Some(cpt) => match cpt.pos(1) {
+                    Some((x, y)) if x == y => {
+                        self.error = Some(EmptyVersion(line_no));
+                        return None;
+                    }
+                    Some(x) => Some(x),
+                    None => {
+                        self.error = Some(NoCapture(line_no));
+                        return None;
+                    }
+                },
+                None => {
+                    match self.scanner.block_end {
+                        Some(ref end_re) if end_re.is_match(line) => {
+                            self.state = Suffix;
+                        }
+                        _ => {}
+                    }
+                    None
+                }
+            },
+            Suffix => None,
+        }
     }
 }
 
@@ -64,44 +123,13 @@ impl Scanner {
             regex: try!(re::compile(&cfg.regex)),
         })
     }
-    pub fn scan_file<F, P: AsRef<Path>>(&self, path: P, fun: F)
-        -> Result<(), io::Error>
-        where F: FnMut(usize, &str, Option<re::Captures>) -> bool,
-    {
-        match File::open(path) {
-            Ok(x) => {
-                self.scan(&mut Lines(0, BufReader::new(x)), fun)
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-                return Ok(());
-            }
-            Err(e) => return Err(e),
+    pub fn start(&self) -> Iter {
+        use self::State::*;
+        Iter {
+            scanner: self,
+            state: if self.block_start.is_some()
+                { Prefix } else { Body },
+            error: None,
         }
-    }
-    fn scan<B, F>(&self, lines: &mut Lines<B>, mut fun: F)
-        -> Result<(), io::Error>
-        where F: FnMut(usize, &str, Option<re::Captures>) -> bool,
-              B: BufRead,
-    {
-        if !try!(_find_block_start(lines, &self.block_start, &mut fun)) {
-            return Ok(());
-        }
-        let block_re = self.block_end.as_ref();
-        for item in lines.by_ref() {
-            let (lineno, line) = try!(item);
-            if !fun(lineno, &line, self.regex.captures(&line)) {
-                return Ok(());
-            }
-            if block_re.as_ref().map(|re| re.is_match(&line)).unwrap_or(false) {
-                break;
-            }
-        }
-        for item in lines {
-            let (lineno, line) = try!(item);
-            if !fun(lineno, &line, None) {
-                return Ok(());
-            }
-        }
-        Ok(())
     }
 }
