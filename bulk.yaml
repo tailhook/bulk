@@ -34,5 +34,5 @@ versions:
   block-end: ^\[.*\]
   regex: ^version\s*=\s*"(\S+)"
 
-- file: package.yaml
+- file: bulk.yaml
   regex: ^minimum-bulk:\s+v(\S+)
