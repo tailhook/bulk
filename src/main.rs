@@ -97,7 +97,8 @@ fn main() {
         ap.refer(&mut command)
             .add_argument("command", Store, "
                 Command to run. Supported commands: \
-                pack, repo-add, get-version, set-version, check-version");
+                pack, repo-add, get-version, set-version, check-version, \
+                with-version");
         ap.refer(&mut args)
             .add_argument("arguments", List,
                 "Arguments for the command");
@@ -109,7 +110,8 @@ fn main() {
         Action::Help => {
             println!("Usage:");
             println!("    bulk \
-                {{pack,repo-add,get-version,set-verion,check-version}} \
+                {{pack,repo-add,get-version,set-verion,\
+                  check-version,with-version}} \
                 [options]");
         }
         Action::Pack => {
