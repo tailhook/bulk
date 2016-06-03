@@ -56,6 +56,10 @@ Currently we provide static binary for x86_64:
     wget http://files.zerogw.com/bulk/bulk-0.4.1.tar.gz
     tar -xzf bulk-0.4.1.tar.gz -C /
 
+Or you can install it with cargo:
+
+    cargo install bulk
+
 This will install bulk in ``/usr/bin``. Ubuntu packages will be available
 shortly.
 

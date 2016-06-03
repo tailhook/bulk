@@ -5,7 +5,8 @@ authors = ["Paul Colomiets"]
 license = "MIT"
 repository = "http://github.com/tailhook/bulk"
 description = """
-    A simple tool for making deb packages.
+    A simple tool for making deb packages, repositories,
+    and update version numbers.
 """
 
 [dependencies]
