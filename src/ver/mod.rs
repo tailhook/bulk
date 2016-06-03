@@ -203,7 +203,13 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
                                 }
                             }
                         } else {
-                            prev = Some(ver.to_string());
+                            if citer.scanner().partial.is_none() {
+                                // TODO(tailhook) we skip checking partial
+                                // version is it's not the first one
+                                // We may fix it, but probably it's not a big
+                                // deal
+                                prev = Some(ver.to_string());
+                            }
                         }
                         nline
                     }
