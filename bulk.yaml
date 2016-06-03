@@ -34,5 +34,10 @@ versions:
   block-end: ^\[.*\]
   regex: ^version\s*=\s*"(\S+)"
 
+- file: Cargo.lock
+  block-start: ^\[root\]
+  block-end: ^\[.*\]
+  regex: ^version\s*=\s*"(\S+)"
+
 #- file: bulk.yaml
 #  regex: ^minimum-bulk:\s+v(\S+)
