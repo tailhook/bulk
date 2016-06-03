@@ -258,7 +258,7 @@ pub fn get_version(args: Vec<String>) {
 pub fn set_version(args: Vec<String>) {
     let mut config = PathBuf::from("bulk.yaml");
     let mut dir = PathBuf::from(".");
-    let mut version = String::new();
+    let mut version = Version(String::new());
     let mut dry_run = false;
     let mut force = false;
     {
@@ -286,7 +286,7 @@ pub fn set_version(args: Vec<String>) {
         }
     }
 
-    match _set(&config, &dir, &version, dry_run, force) {
+    match _set(&config, &dir, version.num(), dry_run, force) {
         Ok(_) => {}
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
@@ -327,7 +327,7 @@ pub fn check_version(args: Vec<String>) {
 pub fn with_version(args: Vec<String>) {
     let mut config = PathBuf::from("bulk.yaml");
     let mut dir = PathBuf::from(".");
-    let mut version = String::new();
+    let mut version = Version(String::new());
     let mut cmdline = Vec::<String>::new();
     {
         let mut ap = ArgumentParser::new();
@@ -352,7 +352,7 @@ pub fn with_version(args: Vec<String>) {
         }
     }
 
-    let old = match _set(&config, &dir, &version, false, false) {
+    let old = match _set(&config, &dir, version.num(), false, false) {
         Ok(ver) => ver,
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();

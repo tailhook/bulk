@@ -16,6 +16,7 @@ use flate2::{GzBuilder, Compression};
 use scan_dir;
 
 use ver;
+use version::Version;
 use config::{Config, Metadata};
 use self::ar::{ArArchive, SIZE_AUTO};
 use self::tar::ArchiveExt;
@@ -65,13 +66,14 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata, version: &String)
     Ok(())
 }
 
-fn _pack(config: &Path, dir: &Path, destdir: &Path, version: Option<String>)
+fn _pack(config: &Path, dir: &Path, destdir: &Path,
+    version: Option<Version<String>>)
     -> Result<(), Box<Error>>
 {
     let cfg = try!(Config::parse_file(config));
 
     let version = if let Some(ver) = version {
-        ver
+        ver.num().to_string()
     } else {
         try!(ver::get(&cfg, Path::new("."))).0
     };

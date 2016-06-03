@@ -2,6 +2,7 @@ use std::str::CharIndices;
 use std::iter::{Peekable};
 use std::cmp::Ordering;
 
+use argparse::FromCommandLine;
 use rustc_serialize::{Decodable, Decoder};
 
 #[derive(Debug, Clone)]
@@ -33,6 +34,14 @@ impl<T: AsRef<str>> AsRef<str> for Version<T> {
 }
 
 impl<T: AsRef<str>> Version<T> {
+    pub fn num(&self) -> &str {
+        let s = self.0.as_ref();
+        if s.starts_with("v") {
+            &s[1..]
+        } else {
+            s
+        }
+    }
     fn components(&self) -> Components {
         let mut ch = self.0.as_ref().char_indices().peekable();
         if ch.peek() == Some(&(0, 'v')) {
@@ -127,6 +136,12 @@ impl<T: AsRef<str>> Ord for Version<T> {
     }
 }
 
+impl FromCommandLine for Version<String> {
+    fn from_argument(val: &str) -> Result<Version<String>, String> {
+        Ok(Version(val.to_string()))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::Version;
@@ -174,4 +189,3 @@ mod test {
         assert!(Version("1.0.0-rc.1") < Version("1.0.0"));
     }
 }
-
