@@ -1,4 +1,4 @@
-minimum-bulk: v0.3.0
+minimum-bulk: v0.4.0
 
 metadata:
   name: bulk
@@ -34,5 +34,5 @@ versions:
   block-end: ^\[.*\]
   regex: ^version\s*=\s*"(\S+)"
 
-- file: bulk.yaml
-  regex: ^minimum-bulk:\s+v(\S+)
+#- file: bulk.yaml
+#  regex: ^minimum-bulk:\s+v(\S+)
