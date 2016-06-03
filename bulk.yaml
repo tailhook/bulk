@@ -39,5 +39,8 @@ versions:
   block-end: ^\[.*\]
   regex: ^version\s*=\s*"(\S+)"
 
+- file: README.rst
+  regex: bulk-(\S+)\.tar\.gz
+
 #- file: bulk.yaml
 #  regex: ^minimum-bulk:\s+v(\S+)
