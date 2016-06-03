@@ -9,6 +9,7 @@ use config::VersionHolder;
 pub struct Scanner {
     pub block_start: Option<Arc<re::Regex>>,
     pub block_end: Option<Arc<re::Regex>>,
+    pub multiple_blocks: bool,
     pub regex: Arc<re::Regex>,
     pub partial: Option<Arc<re::Regex>>,
 }
@@ -104,7 +105,11 @@ impl<'a> Iter<'a> {
                 None => {
                     match self.scanner.block_end {
                         Some(ref end_re) if end_re.is_match(line) => {
-                            self.state = Suffix;
+                            if self.scanner.multiple_blocks {
+                                self.state = Prefix;
+                            } else {
+                                self.state = Suffix;
+                            }
                         }
                         _ => {}
                     }
@@ -126,6 +131,7 @@ impl Scanner {
                            Some(try!(re::compile(regex)))
                        } else { None },
             regex: try!(re::compile(&cfg.regex)),
+            multiple_blocks: cfg.multiple_blocks,
             partial: if let Some(ref regex) = cfg.partial_version {
                            Some(try!(re::compile(regex)))
                        } else { None },

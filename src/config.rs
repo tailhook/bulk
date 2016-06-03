@@ -44,6 +44,7 @@ pub struct Config {
 pub struct VersionHolder {
     pub block_start: Option<String>,
     pub block_end: Option<String>,
+    pub multiple_blocks: bool,
     pub file: Option<PathBuf>,
     pub files: Vec<PathBuf>,
     pub regex: String,
@@ -72,6 +73,7 @@ impl Config {
         .member("versions", Sequence::new(Structure::new()
             .member("block_start", Scalar::new().optional())
             .member("block_end", Scalar::new().optional())
+            .member("multiple_blocks", Scalar::new().default(false))
             .member("file", Scalar::new().optional())
             .member("files", Sequence::new(Scalar::new()))
             .member("regex", Scalar::new())
