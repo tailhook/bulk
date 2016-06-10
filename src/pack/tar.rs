@@ -43,18 +43,26 @@ impl<T: io::Write> ArchiveExt for tar::Builder<T> {
         head.set_mtime(mtime as u64);
 
         if meta.file_type().is_file() {
+            head.set_entry_type(tar::EntryType::Regular);
             let mut file = try!(File::open(&fullpath));
             head.set_size(meta.len() as u64);
             head.set_mode(meta.permissions().mode());
             head.set_cksum();
             self.append(&head, &mut file)
         } else if meta.file_type().is_symlink() {
+            head.set_entry_type(tar::EntryType::Symlink);
             let lnk = try!(read_link(&fullpath));
             head.set_size(0);
             head.set_mode(meta.permissions().mode());
             try!(head.set_link_name(lnk));
             head.set_cksum();
-            self.append(&head, &mut io::Cursor::new(b""))
+            self.append(&head, &mut io::empty())
+        } else if meta.file_type().is_dir() {
+            head.set_entry_type(tar::EntryType::Directory);
+            head.set_size(0);
+            head.set_mode(meta.permissions().mode());
+            head.set_cksum();
+            self.append(&head, &mut io::empty())
         } else {
             // Silently skip as documented
             Ok(())
