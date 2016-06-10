@@ -48,7 +48,7 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata, version: &String)
         let data = try!(ar.add("data.tar.gz",
             mtime, 0, 0, 0o100644, SIZE_AUTO));
         let dreal = GzBuilder::new().write(data, Compression::Best);
-        let mut files = try!(scan_dir::ScanDir::files().skip_backup(true)
+        let mut files = try!(scan_dir::ScanDir::all().skip_backup(true)
             .walk(dir, |iter| {
                 iter.map(|(entry, _name)| {
                     entry.path().strip_prefix(dir).unwrap().to_path_buf()})
