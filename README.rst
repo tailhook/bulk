@@ -53,8 +53,8 @@ Installation
 
 Currently we provide static binary for x86_64:
 
-    wget http://files.zerogw.com/bulk/bulk-0.4.2.tar.gz
-    tar -xzf bulk-0.4.2.tar.gz -C /
+    wget http://files.zerogw.com/bulk/bulk-0.4.3.tar.gz
+    tar -xzf bulk-0.4.3.tar.gz -C /
 
 Or you can install it with cargo:
 
