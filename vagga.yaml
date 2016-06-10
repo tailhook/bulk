@@ -98,6 +98,12 @@ commands:
     prerequisites: [package, repo-add, _test-trusty, _test-xenial]
     run: [echo, "Done"]
 
+  doc: !Command
+    description: Build docs
+    container: doc
+    work-dir: doc
+    run: [make, html]
+
 containers:
 
   rust-musl:
@@ -159,3 +165,11 @@ containers:
       url: http://localhost:7777/
       suite: static
       components: [bulk-testing]
+
+  doc:
+    setup:
+    - !Alpine v3.4
+    - !Install [make, python3]
+    - !PipConfig { dependencies: true }
+    - !Py3Install [sphinx]
+    - !Py3Requirements doc/requirements.txt
