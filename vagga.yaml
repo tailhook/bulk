@@ -114,26 +114,7 @@ containers:
     setup:
     - !Ubuntu trusty
     - !UbuntuUniverse
-    - !Install [build-essential, ca-certificates]
-    - !BuildDeps [cmake, libc++-dev, curl, autoconf, automake, libtool]
-    # Build script derived from
-    # https://github.com/rust-lang/rust-buildbot/blob/master/slaves/linux/build-musl.sh
-    - !TarInstall
-      url: http://www.musl-libc.org/releases/musl-1.1.14.tar.gz
-      script: |
-        ./configure --prefix=/musl --disable-shared
-        make -j2
-        make install
-
-    - !Tar
-      url: http://llvm.org/releases/3.8.0/llvm-3.8.0.src.tar.xz
-      path: /tmp/llvm
-    - !TarInstall
-      url: http://llvm.org/releases/3.8.0/libunwind-3.8.0.src.tar.xz
-      script: |
-        cmake . -DLLVM_PATH=/tmp/llvm/llvm-3.8.0.src -DLIBUNWIND_ENABLE_SHARED=0
-        make -j2
-        cp lib/libunwind.a /musl/lib
+    - !Install [build-essential, ca-certificates, musl-tools]
     - !TarInstall
       url: "http://static.rust-lang.org/dist/rust-1.9.0-x86_64-unknown-linux-gnu.tar.gz"
       script: "./install.sh --prefix=/usr --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo"
