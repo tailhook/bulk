@@ -7,11 +7,19 @@ use std::collections::HashMap;
 
 use config::{Config};
 use version::Version;
-use argparse::{ArgumentParser, Parse, StoreTrue, List};
+use argparse::{ArgumentParser, Parse, StoreTrue, List, StoreConst};
 
 use self::scanner::{Scanner, Lines, Iter};
 
 mod scanner;
+
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
+enum Verbosity {
+    Quiet,
+    Normal,
+    Verbose,
+}
 
 
 fn _get(config: &Path, dir: &Path) -> Result<Version<String>, Box<Error>> {
@@ -105,12 +113,14 @@ fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
     }
 }
 
-fn _set(config: &Path, dir: &Path, version: &str, dry_run: bool, force: bool)
+fn _set(config: &Path, dir: &Path, version: &str, dry_run: bool, force: bool,
+    verbosity: Verbosity)
     -> Result<String, Box<Error>>
 {
     let cfg = try!(Config::parse_file(&config));
     let mut buf = Vec::new();
-    let mut result = _write_tmp(&cfg, dir, version, &mut buf, force);
+    let mut result = _write_tmp(&cfg, dir, version, &mut buf, force,
+        verbosity);
     let mut iter = buf.into_iter();
     if !dry_run && result.is_ok() {
         for (tmp, dest) in iter.by_ref() {
@@ -135,7 +145,7 @@ fn _set(config: &Path, dir: &Path, version: &str, dry_run: bool, force: bool)
 }
 
 fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
-    files: &mut Vec<(PathBuf, PathBuf)>, force: bool)
+    files: &mut Vec<(PathBuf, PathBuf)>, force: bool, verbosity: Verbosity)
     -> Result<String, Box<Error>>
 {
     let mut prev: Option<String> = None;
@@ -182,9 +192,11 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
                         let nline = String::from(&line[..start])
                             + partver + &line[end..];
 
-                        println!("{}:{}: (v{} -> v{}) {}",
-                            filename.display(), lineno, ver, partver,
-                            nline.trim_right());
+                        if verbosity == Verbosity::Verbose {
+                            writeln!(&mut stderr(), "{}:{}: (v{} -> v{}) {}",
+                                filename.display(), lineno, ver, partver,
+                                nline.trim_right()).ok();
+                        }
                         if let Some(ref pver) = prev {
                             let cver = citer.scanner().partial.as_ref()
                                 .map(|re| re.captures(pver)
@@ -197,7 +209,7 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
                                     filename.display(), lineno,
                                     ver, cver);
                                 if force {
-                                    println!("{}", msg);
+                                    writeln!(&mut stderr(), "{}", msg).ok();
                                 } else {
                                     result = Err(msg.into());
                                 }
@@ -225,6 +237,9 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
         if let Err(e) = result {
             Err(e)
         } else {
+            if verbosity == Verbosity::Normal {
+                writeln!(&mut stderr(), "{} -> {}", ver, version).ok();
+            }
             Ok(ver)
         }
     } else {
@@ -292,7 +307,9 @@ pub fn set_version(args: Vec<String>) {
         }
     }
 
-    match _set(&config, &dir, version.num(), dry_run, force) {
+    match _set(&config, &dir, version.num(), dry_run, force,
+        Verbosity::Verbose)
+    {
         Ok(_) => {}
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
@@ -335,6 +352,7 @@ pub fn with_version(args: Vec<String>) {
     let mut dir = PathBuf::from(".");
     let mut version = Version(String::new());
     let mut cmdline = Vec::<String>::new();
+    let mut verbosity = Verbosity::Normal;
     {
         let mut ap = ArgumentParser::new();
         ap.refer(&mut config)
@@ -344,6 +362,12 @@ pub fn with_version(args: Vec<String>) {
             .add_option(&["--base-dir"], Parse, "
                 Base directory for all paths in config. \
                 Current working directory by default.");
+        ap.refer(&mut verbosity)
+            .add_option(&["--quiet"], StoreConst(Verbosity::Quiet), "
+                Don't print anything")
+            .add_option(&["--verbose"], StoreConst(Verbosity::Verbose), "
+                Print file lines an versions changed. By default we just print
+                old an the new versions.");
         ap.refer(&mut version)
             .add_argument("version", Parse, "Target version")
             .required();
@@ -358,7 +382,8 @@ pub fn with_version(args: Vec<String>) {
         }
     }
 
-    let old = match _set(&config, &dir, version.num(), false, false) {
+    let old = match _set(&config, &dir, version.num(), false, false, verbosity)
+    {
         Ok(ver) => ver,
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
@@ -370,7 +395,7 @@ pub fn with_version(args: Vec<String>) {
     cmd.args(&cmdline);
     let result = cmd.status();
 
-    match _set(&config, &dir, &old, false, false) {
+    match _set(&config, &dir, &old, false, false, verbosity) {
         Ok(_) => {}
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
