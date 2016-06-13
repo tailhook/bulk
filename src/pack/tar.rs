@@ -1,5 +1,5 @@
 use std::io;
-use std::fs::{File, metadata, read_link};
+use std::fs::{File, symlink_metadata, read_link};
 use std::path::Path;
 use std::os::unix::fs::PermissionsExt;
 
@@ -36,7 +36,7 @@ impl<T: io::Write> ArchiveExt for tar::Builder<T> {
     {
         let path = path.as_ref();
         let fullpath = dir.as_ref().join(path);
-        let meta = try!(metadata(&fullpath));
+        let meta = try!(symlink_metadata(&fullpath));
 
         let mut head = tar::Header::new_gnu();
         try!(head.set_path(path));
