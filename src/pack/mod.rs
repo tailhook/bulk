@@ -78,8 +78,8 @@ fn _pack(config: &Path, dir: &Path, destdir: &Path,
         try!(ver::get(&cfg, Path::new("."))).0
     };
 
-
-    let ref meta = cfg.metadata;
+    let ref meta = try!(cfg.metadata
+        .ok_or(format!("No package metadata is in the config")));
     // TODO(tailhook) not only debian
     let dest = destdir.join(format!("{}-{}_{}.deb",
         meta.name, version, "amd64"));

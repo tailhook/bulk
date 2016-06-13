@@ -35,7 +35,7 @@ pub struct Repository {
 #[derive(RustcDecodable, Clone, Debug)]
 pub struct Config {
     pub minimum_bulk: Version<String>,
-    pub metadata: Metadata,
+    pub metadata: Option<Metadata>,
     pub repositories: Vec<Repository>,
     pub versions: Vec<VersionHolder>,
 }
@@ -56,7 +56,7 @@ impl Config {
         Structure::new()
         .member("minimum_bulk", MinimumVersion(
             Version(env!("CARGO_PKG_VERSION"))))
-        .member("metadata", Structure::new()
+        .member("metadata", Structure::new().optional()
             .member("name", Scalar::new())
             .member("short_description", Scalar::new())
             .member("long_description", Scalar::new())
