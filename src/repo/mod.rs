@@ -47,8 +47,11 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
                 (RepositoryType::debian, &Some(ref suite), &Some(ref comp))
                 => {
                     for p in matching {
-                        let mut cmp = try!(debian.open(suite, comp, &p.arch));
-                        try!(cmp.add_package(p, on_conflict));
+                        try!(try!(debian.open(suite, comp, &p.arch))
+                            .add_package(p, on_conflict));
+                        if repo.add_empty_i386_repo && p.arch != "i386" {
+                            try!(debian.open(suite, comp, "i386"));
+                        }
                     }
                 }
                 (RepositoryType::debian, _, _) => {

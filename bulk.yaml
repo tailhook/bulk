@@ -15,17 +15,20 @@ repositories:
   component: bulk
   keep-releases: 1
   match-version: ^\d+\.\d+\.\d+$
+  add-empty-i386-repo: true
 
 - kind: debian
   suite: static
   component: bulk-stable
   keep-releases: 1000
   match-version: ^\d+\.\d+\.\d+$
+  add-empty-i386-repo: true
 
 - kind: debian
   suite: static
   component: bulk-testing
   keep-releases: 100
+  add-empty-i386-repo: true
 
 versions:
 

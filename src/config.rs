@@ -30,6 +30,9 @@ pub struct Repository {
     pub keep_releases: Option<usize>,
     pub match_version: Option<String>,
     pub skip_version: Option<String>,
+    // This hack is needed for old ubuntu which want to download indexes for
+    // i386 packages even on amd64 even if you will never try to install them
+    pub add_empty_i386_repo: bool,
 }
 
 #[derive(RustcDecodable, Clone, Debug)]
@@ -69,7 +72,8 @@ impl Config {
             .member("component", Scalar::new().optional())
             .member("keep_releases", Numeric::new().optional())
             .member("match_version", Scalar::new().optional())
-            .member("skip_version", Scalar::new().optional())))
+            .member("skip_version", Scalar::new().optional())
+            .member("add_empty_i386_repo", Scalar::new().default(false))))
         .member("versions", Sequence::new(Structure::new()
             .member("block_start", Scalar::new().optional())
             .member("block_end", Scalar::new().optional())
