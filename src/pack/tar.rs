@@ -2,6 +2,7 @@ use std::io;
 use std::fs::{File, symlink_metadata, read_link};
 use std::path::Path;
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::ffi::OsStrExt;
 
 use tar;
 
@@ -50,11 +51,19 @@ impl<T: io::Write> ArchiveExt for tar::Builder<T> {
             head.set_cksum();
             self.append(&head, &mut file)
         } else if meta.file_type().is_symlink() {
-            head.set_entry_type(tar::EntryType::Symlink);
             let lnk = try!(read_link(&fullpath));
+
+            let lnkbytes = lnk.as_os_str().as_bytes();
+            let mut longlink = tar::Header::new_gnu();
+            try!(longlink.set_path(path));
+            longlink.set_entry_type(tar::EntryType::GNULongLink);
+            longlink.set_size(lnkbytes.len() as u64);
+            longlink.set_cksum();
+            try!(self.append(&longlink, &mut io::Cursor::new(lnkbytes)));
+
+            head.set_entry_type(tar::EntryType::Symlink);
             head.set_size(0);
             head.set_mode(meta.permissions().mode());
-            try!(head.set_link_name(lnk));
             head.set_cksum();
             self.append(&head, &mut io::empty())
         } else if meta.file_type().is_dir() {
