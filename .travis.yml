@@ -1,0 +1,11 @@
+language: rust
+rust: stable
+os: linux
+dist: trusty
+sudo: false
+
+cache:
+- cargo
+
+script:
+- cargo test --verbose $CARGO_ARGS
