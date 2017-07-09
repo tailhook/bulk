@@ -3,9 +3,35 @@ rust: stable
 os: linux
 dist: trusty
 sudo: false
+addons:
+  apt:
+    packages:
+    - fakeroot
+    - musl-tools
 
 cache:
+- apt
 - cargo
+
+install:
+- rustup target add x86_64-unknown-linux-musl
 
 script:
 - cargo test --verbose $CARGO_ARGS
+- cargo build --target=x86_64-unknown-linux-musl --release
+
+before_deploy: |
+  mkdir -p dist
+  fakeroot sh -ecx '
+    install -D target/x86_64-unknown-linux-musl/release/bulk pkg/usr/bin/bulk
+    tar -C pkg -czf dist/bulk-$TRAVIS_TAG.tar.gz usr
+  '
+
+deploy:
+  provider: releases
+  api_key:
+    secure: "mYZ+nwYRqW2FWxWS5pwvZLpQIrNdzh2FXwSsECQtDMXsulqO52oMZgldH42l6fcYq8cEDqrwRifo8G3Z4xYXIFdCPzrDej/Uqt8ri976fbnAuWg965KMA6CnzVANCiYlVekp/R1su/vPx8b1hjO/RpXfb76cv4oHMH63ZKFArb9aqPHz7AUthMpuWqKCYvNb8/pSWwxLDB9rIeED/uLJe6F3ysJYw0uQWQpmbep6363b/m9/9K1wcbMfyrL418WoaatVyCNXLibK8g9+12vhidR631VOX4iVzYCRmTmK6wvXrHWY+k9cGvmttTtMFjBJJfGTNElbQ22HjEAxIxRn+1tO7X8E70qRRchmzvbs9srpEO1L1qsl+F2PZJOhCW5DYopt8B50dFsWzT+fnsToJzy/U5RosMPcqdSb79uIHN8dbJtSf5oQFJw8qEF6PxlnW5gTK28+74v2Re8ebv1l+vGueswdsJq9WCXCkgXW0w19TwrXDqZnL0X1mFXPYbk9SK4x2WCI8QV9Twd/ykrLm+aPHbrHAqQbICdeH3XHvlfMhQ+DR039Of0ayRvb2Ty/713ontJ2a54fWOW9bG62NnJyDe8dTgVmVki7LkAkxIe3nbkkCZ4XNQIVLgbP7lEJfi3QSOEnezDTRUQH/GLX/QeNHy6S1qaa671Vhu37nYY="
+  file: "dist/bulk-$TRAVIS_TAG.tar.gz"
+  skip_cleanup: true
+  on:
+    tags: true
