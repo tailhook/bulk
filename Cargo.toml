@@ -1,6 +1,6 @@
 [package]
 name = "bulk"
-version = "0.4.7"
+version = "0.4.8"
 authors = ["Paul Colomiets"]
 license = "MIT"
 repository = "http://github.com/tailhook/bulk"
