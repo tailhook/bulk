@@ -7,7 +7,7 @@ use rustc_serialize::{Decodable, Decoder};
 
 #[derive(Debug, Clone)]
 pub struct Version<T: AsRef<str>>(pub T);
-struct Components<'a>(&'a str, Peekable<CharIndices<'a>>);
+pub struct Components<'a>(&'a str, Peekable<CharIndices<'a>>);
 
 impl Decodable for Version<String> {
     fn decode<D: Decoder>(d: &mut D) -> Result<Self, D::Error> {
@@ -16,7 +16,7 @@ impl Decodable for Version<String> {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-enum Component<'a> {
+pub enum Component<'a> {
     Numeric(u64),
     String(&'a str),
 }
@@ -24,6 +24,15 @@ enum Component<'a> {
 impl<T: AsRef<str>> ::std::fmt::Display for Version<T> {
     fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         self.0.as_ref().fmt(fmt)
+    }
+}
+
+impl<'a> ::std::fmt::Display for Component<'a> {
+    fn fmt(&self, fmt: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            Component::Numeric(v) => v.fmt(fmt),
+            Component::String(v) => v.fmt(fmt),
+        }
     }
 }
 
@@ -42,7 +51,7 @@ impl<T: AsRef<str>> Version<T> {
             s
         }
     }
-    fn components(&self) -> Components {
+    pub fn components(&self) -> Components {
         let mut ch = self.0.as_ref().char_indices().peekable();
         if ch.peek() == Some(&(0, 'v')) {
             ch.next();
@@ -50,6 +59,7 @@ impl<T: AsRef<str>> Version<T> {
         return Components(self.0.as_ref(), ch);
     }
 }
+
 
 impl<'a> Iterator for Components<'a> {
     type Item = Component<'a>;

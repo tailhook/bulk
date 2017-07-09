@@ -5,13 +5,15 @@ use std::error::Error;
 use std::process::{Command, exit};
 use std::collections::HashMap;
 
-use config::{Config};
-use version::Version;
 use argparse::{ArgumentParser, Parse, StoreTrue, List, StoreConst};
 
-use self::scanner::{Scanner, Lines, Iter};
+use config::{Config};
+use version::{Version};
+use ver::scanner::{Scanner, Lines, Iter};
+use ver::bump::Bump;
 
 mod scanner;
+mod bump;
 
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone, Copy)]
@@ -20,7 +22,6 @@ enum Verbosity {
     Normal,
     Verbose,
 }
-
 
 fn _get(config: &Path, dir: &Path) -> Result<Version<String>, Box<Error>> {
     let cfg = try!(Config::parse_file(&config));
@@ -308,6 +309,72 @@ pub fn set_version(args: Vec<String>) {
     }
 
     match _set(&config, &dir, version.num(), dry_run, force,
+        Verbosity::Verbose)
+    {
+        Ok(_) => {}
+        Err(text) => {
+            writeln!(&mut stderr(), "Error: {}", text).ok();
+            exit(1);
+        }
+    }
+}
+
+pub fn incr_version(args: Vec<String>) {
+    let mut config = PathBuf::from("bulk.yaml");
+    let mut dir = PathBuf::from(".");
+    let mut bump = Bump::Patch;
+    let mut dry_run = false;
+    {
+        let mut ap = ArgumentParser::new();
+        ap.refer(&mut config)
+            .add_option(&["-c", "--config"], Parse,
+                "Package configuration file");
+        ap.refer(&mut dir)
+            .add_option(&["--base-dir"], Parse, "
+                Base directory for all paths in config. \
+                Current working directory by default.");
+        ap.refer(&mut dry_run)
+            .add_option(&["--dry-run"], StoreTrue, "
+                Don't write version, just show changes");
+        ap.refer(&mut bump)
+            .add_option(&["--breaking", "-b"], StoreConst(Bump::Major), "
+                Bump semver breaking (major) version")
+            .add_option(&["--feature", "-f"], StoreConst(Bump::Minor), "
+                Bump semver feature (minor) version")
+            .add_option(&["--bugfix", "-x"], StoreConst(Bump::Patch), "
+                Bump semver bugfix (patch) version")
+            .add_option(&["-1"], StoreConst(Bump::Component(1)), "
+                Bump first component of a version")
+            .add_option(&["-2"], StoreConst(Bump::Component(2)), "
+                Bump second component of a version")
+            .add_option(&["-3"], StoreConst(Bump::Component(3)), "
+                Bump third component of a version")
+            .required();
+
+        match ap.parse(args, &mut stdout(), &mut stderr()) {
+            Ok(()) => {}
+            Err(x) => exit(x),
+        }
+    }
+
+    let ver = match _get(&config, &dir) {
+        Ok(ver) => ver,
+        Err(text) => {
+            writeln!(&mut stderr(), "Error: {}", text).ok();
+            exit(1);
+        }
+    };
+    let nver = match bump::bump_version(&ver, bump) {
+        Ok(x) => x,
+        Err(e) => {
+            writeln!(&mut stderr(), "Can't bump version {:?}: {}", ver, e)
+                .ok();
+            exit(1);
+        }
+    };
+    println!("Bumping {} -> {}", ver, nver);
+
+    match _set(&config, &dir, Version(nver).num(), dry_run, false,
         Verbosity::Verbose)
     {
         Ok(_) => {}

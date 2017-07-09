@@ -37,6 +37,7 @@ enum Action {
     RepoAdd,
     GetVersion,
     SetVersion,
+    IncrVersion,
     CheckVersion,
     WithVersion,
 }
@@ -75,6 +76,17 @@ impl FromStr for Action {
             "verset" => Ok(Action::SetVersion),
             "versionset" => Ok(Action::SetVersion),
 
+            "incr-version" => Ok(Action::IncrVersion),
+            "inc-version" => Ok(Action::IncrVersion),
+            "version-incr" => Ok(Action::IncrVersion),
+            "version-inc" => Ok(Action::IncrVersion),
+            "incr" => Ok(Action::IncrVersion),
+            "bump-version" => Ok(Action::IncrVersion),
+            "version-bump" => Ok(Action::IncrVersion),
+            "bumpver" => Ok(Action::IncrVersion),
+            "bump-ver" => Ok(Action::IncrVersion),
+            "bump" => Ok(Action::IncrVersion),
+
             "check-version" => Ok(Action::CheckVersion),
             "version-check" => Ok(Action::CheckVersion),
 
@@ -97,8 +109,8 @@ fn main() {
         ap.refer(&mut command)
             .add_argument("command", Store, "
                 Command to run. Supported commands: \
-                pack, repo-add, get-version, set-version, check-version, \
-                with-version");
+                pack, repo-add, get-version, set-version, incr-version, \
+                check-version, with-version");
         ap.refer(&mut args)
             .add_argument("arguments", List,
                 "Arguments for the command");
@@ -129,6 +141,10 @@ fn main() {
         Action::SetVersion => {
             args.insert(0, "bulk set-version".to_string());
             ver::set_version(args);
+        }
+        Action::IncrVersion => {
+            args.insert(0, "bulk incr-version".to_string());
+            ver::incr_version(args);
         }
         Action::CheckVersion => {
             args.insert(0, "bulk check-version".to_string());
