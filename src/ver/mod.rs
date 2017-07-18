@@ -6,6 +6,7 @@ use std::process::{Command, exit};
 use std::collections::HashMap;
 
 use argparse::{ArgumentParser, Parse, StoreTrue, List, StoreConst};
+use git2::{Repository, DescribeOptions, DescribeFormatOptions};
 
 use config::{Config};
 use version::{Version};
@@ -58,7 +59,18 @@ pub fn get(cfg: &Config, dir: &Path) -> Result<Version<String>, Box<Error>> {
     return Err("Version not found".into());
 }
 
-fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
+fn _check(config: &Path, dir: &Path, git_ver: Option<(String, bool)>)
+    -> Result<bool, Box<Error>>
+{
+    let git_vers = git_ver.as_ref()
+        .map(|&(ref x, exact)| (x.trim_left_matches('v'), exact))
+        .map(|(x, exact)| {
+            if exact {
+                (x, x)
+            } else {
+                (x, &x[..x.find("-").unwrap_or(x.len())])
+            }
+        });
     let cfg = try!(Config::parse_file(&config));
     let mut prev: Option<String> = None;
     let mut result = true;
@@ -98,7 +110,18 @@ fn _check(config: &Path, dir: &Path) -> Result<bool, Box<Error>> {
                                     ver, cver).ok();
                             }
                         } else {
-                            prev = Some(ver.to_string());
+                            if let Some((long, short)) = git_vers {
+                                if long != ver && short != ver {
+                                    result = false;
+                                    writeln!(&mut stderr(),
+                                        "{}:{}: version conflict {} != {}",
+                                        filename.display(), lineno,
+                                        ver, short).ok();
+                                    prev = Some(short.to_string());
+                                } else {
+                                    prev = Some(ver.to_string());
+                                }
+                            }
                         }
                     }
                     None => {}
@@ -385,14 +408,32 @@ pub fn incr_version(args: Vec<String>) {
     }
 }
 
+pub fn git_version() -> Result<String, Box<::std::error::Error>> {
+    let repo = Repository::open(".")?;
+    let descr = repo.describe(&DescribeOptions::default())?;
+    Ok(descr.format(Some(
+        DescribeFormatOptions::new()
+        .dirty_suffix("-dirty")
+    ))?)
+}
+
 pub fn check_version(args: Vec<String>) {
     let mut config = PathBuf::from("bulk.yaml");
     let mut dir = PathBuf::from(".");
+    let mut git_describe = false;
+    let mut git_exact = false;
     {
         let mut ap = ArgumentParser::new();
         ap.refer(&mut config)
             .add_option(&["-c", "--config"], Parse,
                 "Package configuration file");
+        ap.refer(&mut git_describe)
+            .add_option(&["-g", "--git-describe"], StoreTrue,
+                "Check that version matches `git describe`");
+        ap.refer(&mut git_exact)
+            .add_option(&["-G", "--git-describe-exact"], StoreTrue,
+                "Check that `git describe` matches version exactly \
+                (current commit is a tag commit");
         ap.refer(&mut dir)
             .add_option(&["--base-dir"], Parse, "
                 Base directory for all paths in config. \
@@ -403,7 +444,19 @@ pub fn check_version(args: Vec<String>) {
         }
     }
 
-    match _check(&config, &dir) {
+    let version = if git_describe || git_exact {
+        match git_version() {
+            Ok(ver) => Some(ver),
+            Err(e) => {
+                writeln!(&mut stderr(), "Git error: {}", e).ok();
+                exit(2);
+            }
+        }
+    } else {
+        None
+    };
+
+    match _check(&config, &dir, version.map(|v| (v, git_exact))) {
         Ok(val) => {
             exit(if val { 0 } else { 1 });
         }
