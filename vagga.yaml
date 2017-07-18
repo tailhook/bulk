@@ -114,7 +114,7 @@ containers:
     setup:
     - !Ubuntu trusty
     - !UbuntuUniverse
-    - !Install [build-essential, ca-certificates, musl-tools]
+    - !Install [build-essential, ca-certificates, musl-tools, cmake, zlib1g-dev]
     - !TarInstall
       url: "https://static.rust-lang.org/dist/rust-1.18.0-x86_64-unknown-linux-gnu.tar.gz"
       script: "./install.sh --prefix=/usr --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo"
