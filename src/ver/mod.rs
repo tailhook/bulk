@@ -14,6 +14,7 @@ use ver::scanner::{Scanner, Lines, Iter};
 use ver::bump::Bump;
 
 mod scanner;
+mod commit;
 mod bump;
 
 
@@ -22,11 +23,6 @@ enum Verbosity {
     Quiet,
     Normal,
     Verbose,
-}
-
-fn _get(config: &Path, dir: &Path) -> Result<Version<String>, Box<Error>> {
-    let cfg = try!(Config::parse_file(&config));
-    get(&cfg, dir)
 }
 
 pub fn get(cfg: &Config, dir: &Path) -> Result<Version<String>, Box<Error>> {
@@ -137,13 +133,12 @@ fn _check(config: &Path, dir: &Path, git_ver: Option<(String, bool)>)
     }
 }
 
-fn _set(config: &Path, dir: &Path, version: &str, dry_run: bool, force: bool,
+fn _set(cfg: &Config, dir: &Path, version: &str, dry_run: bool, force: bool,
     verbosity: Verbosity)
     -> Result<String, Box<Error>>
 {
-    let cfg = try!(Config::parse_file(&config));
     let mut buf = Vec::new();
-    let mut result = _write_tmp(&cfg, dir, version, &mut buf, force,
+    let mut result = _write_tmp(cfg, dir, version, &mut buf, force,
         verbosity);
     let mut iter = buf.into_iter();
     if !dry_run && result.is_ok() {
@@ -289,7 +284,15 @@ pub fn get_version(args: Vec<String>) {
         }
     }
 
-    match _get(&config, &dir) {
+    let cfg = match Config::parse_file(&config) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            writeln!(&mut stderr(), "Error parsing config: {}", e).ok();
+            exit(7);
+        }
+    };
+
+    match get(&cfg, &dir) {
         Ok(ver) => {
             println!("{}", ver);
         }
@@ -331,7 +334,15 @@ pub fn set_version(args: Vec<String>) {
         }
     }
 
-    match _set(&config, &dir, version.num(), dry_run, force,
+    let cfg = match Config::parse_file(&config) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            writeln!(&mut stderr(), "Error parsing config: {}", e).ok();
+            exit(7);
+        }
+    };
+
+    match _set(&cfg, &dir, version.num(), dry_run, force,
         Verbosity::Verbose)
     {
         Ok(_) => {}
@@ -347,6 +358,7 @@ pub fn incr_version(args: Vec<String>) {
     let mut dir = PathBuf::from(".");
     let mut bump = Bump::Patch;
     let mut dry_run = false;
+    let mut git = false;
     {
         let mut ap = ArgumentParser::new();
         ap.refer(&mut config)
@@ -356,6 +368,9 @@ pub fn incr_version(args: Vec<String>) {
             .add_option(&["--base-dir"], Parse, "
                 Base directory for all paths in config. \
                 Current working directory by default.");
+        ap.refer(&mut git)
+            .add_option(&["-g", "--git-commit-and-tag"], StoreTrue, "
+                Commit using git and create a tag");
         ap.refer(&mut dry_run)
             .add_option(&["--dry-run"], StoreTrue, "
                 Don't write version, just show changes");
@@ -380,7 +395,27 @@ pub fn incr_version(args: Vec<String>) {
         }
     }
 
-    let ver = match _get(&config, &dir) {
+    let cfg = match Config::parse_file(&config) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            writeln!(&mut stderr(), "Error parsing config: {}", e).ok();
+            exit(7);
+        }
+    };
+
+    let mut git_repo = if git {
+        match commit::check_status(&cfg, &dir) {
+            Ok(repo) => Some(repo),
+            Err(text) => {
+                writeln!(&mut stderr(), "Git error: {}", text).ok();
+                exit(2);
+            }
+        }
+    } else {
+        None
+    };
+
+    let ver = match get(&cfg, &dir) {
         Ok(ver) => ver,
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
@@ -397,13 +432,23 @@ pub fn incr_version(args: Vec<String>) {
     };
     println!("Bumping {} -> {}", ver, nver);
 
-    match _set(&config, &dir, Version(nver).num(), dry_run, false,
+    match _set(&cfg, &dir, nver.num(), dry_run, false,
         Verbosity::Verbose)
     {
         Ok(_) => {}
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
             exit(1);
+        }
+    }
+
+    if let Some(ref mut repo) = git_repo {
+        match commit::commit_version(&cfg, &dir, repo, &nver, dry_run) {
+            Ok(_) => {}
+            Err(text) => {
+                writeln!(&mut stderr(), "Error commiting: {}", text).ok();
+                exit(1);
+            }
         }
     }
 }
@@ -547,7 +592,15 @@ pub fn with_git_version(args: Vec<String>) {
 fn _with_version(config: &Path, dir: &Path, version: Version<String>,
     mut cmdline: Vec<String>, verbosity: Verbosity)
 {
-    let old = match _set(config, dir, version.num(), false, false, verbosity)
+    let cfg = match Config::parse_file(&config) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            writeln!(&mut stderr(), "Error parsing config: {}", e).ok();
+            exit(7);
+        }
+    };
+
+    let old = match _set(&cfg, dir, version.num(), false, false, verbosity)
     {
         Ok(ver) => ver,
         Err(text) => {
@@ -560,7 +613,7 @@ fn _with_version(config: &Path, dir: &Path, version: Version<String>,
     cmd.args(&cmdline);
     let result = cmd.status();
 
-    match _set(&config, &dir, &old, false, false, verbosity) {
+    match _set(&cfg, &dir, &old, false, false, verbosity) {
         Ok(_) => {}
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
