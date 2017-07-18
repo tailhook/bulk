@@ -501,8 +501,53 @@ pub fn with_version(args: Vec<String>) {
             Err(x) => exit(x),
         }
     }
+    _with_version(&config, &dir, version, cmdline, verbosity)
+}
 
-    let old = match _set(&config, &dir, version.num(), false, false, verbosity)
+pub fn with_git_version(args: Vec<String>) {
+    let mut config = PathBuf::from("bulk.yaml");
+    let mut dir = PathBuf::from(".");
+    let mut cmdline = Vec::<String>::new();
+    let mut verbosity = Verbosity::Normal;
+    {
+        let mut ap = ArgumentParser::new();
+        ap.refer(&mut config)
+            .add_option(&["-c", "--config"], Parse,
+                "Package configuration file");
+        ap.refer(&mut dir)
+            .add_option(&["--base-dir"], Parse, "
+                Base directory for all paths in config. \
+                Current working directory by default.");
+        ap.refer(&mut verbosity)
+            .add_option(&["--quiet"], StoreConst(Verbosity::Quiet), "
+                Don't print anything")
+            .add_option(&["--verbose"], StoreConst(Verbosity::Verbose), "
+                Print file lines an versions changed. By default we just print
+                old an the new versions.");
+        ap.refer(&mut cmdline)
+            .add_argument("cmd", List, "Command and arguments")
+            .required();
+        ap.stop_on_first_argument(true);
+
+        match ap.parse(args, &mut stdout(), &mut stderr()) {
+            Ok(()) => {}
+            Err(x) => exit(x),
+        }
+    }
+    let version = match git_version() {
+        Ok(ver) => Version(ver),
+        Err(e) => {
+            writeln!(&mut stderr(), "Git error: {}", e).ok();
+            exit(2);
+        }
+    };
+    _with_version(&config, &dir, version, cmdline, verbosity)
+}
+
+fn _with_version(config: &Path, dir: &Path, version: Version<String>,
+    mut cmdline: Vec<String>, verbosity: Verbosity)
+{
+    let old = match _set(config, dir, version.num(), false, false, verbosity)
     {
         Ok(ver) => ver,
         Err(text) => {

@@ -41,6 +41,7 @@ enum Action {
     IncrVersion,
     CheckVersion,
     WithVersion,
+    WithGitVersion,
 }
 
 impl FromStr for Action {
@@ -92,6 +93,7 @@ impl FromStr for Action {
             "version-check" => Ok(Action::CheckVersion),
 
             "with-version" => Ok(Action::WithVersion),
+            "with-git-version" => Ok(Action::WithGitVersion),
 
             _ => Err(())
         }
@@ -111,7 +113,7 @@ fn main() {
             .add_argument("command", Store, "
                 Command to run. Supported commands: \
                 pack, repo-add, get-version, set-version, incr-version, \
-                check-version, with-version");
+                check-version, with-version, with-git-version");
         ap.refer(&mut args)
             .add_argument("arguments", List,
                 "Arguments for the command");
@@ -124,7 +126,7 @@ fn main() {
             println!("Usage:");
             println!("    bulk \
                 {{pack,repo-add,get-version,set-verion,\
-                  check-version,with-version}} \
+                  check-version,with-version,git-version}} \
                 [options]");
         }
         Action::Pack => {
@@ -154,6 +156,10 @@ fn main() {
         Action::WithVersion => {
             args.insert(0, "bulk with-version".to_string());
             ver::with_version(args);
+        }
+        Action::WithGitVersion => {
+            args.insert(0, "bulk with-git-version".to_string());
+            ver::with_git_version(args);
         }
     }
 }
