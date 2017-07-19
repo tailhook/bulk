@@ -117,6 +117,8 @@ fn _check(config: &Path, dir: &Path, git_ver: Option<(String, bool)>)
                                 } else {
                                     prev = Some(ver.to_string());
                                 }
+                            } else {
+                                prev = Some(ver.to_string());
                             }
                         }
                     }
