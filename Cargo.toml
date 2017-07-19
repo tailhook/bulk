@@ -26,6 +26,7 @@ time = "0.1.35"
 matches = "0.1.2"
 quick-error = "1.1.0"
 git2 = { version="0.6.6", default-features=false }
+tempfile = "2.1.6"
 
 [[bin]]
 name = "bulk"

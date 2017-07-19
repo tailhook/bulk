@@ -1,11 +1,17 @@
+use std::collections::{VecDeque, HashMap};
+use std::env;
 use std::error::Error;
+use std::io::{self, stderr, Write, BufWriter};
+use std::io::{Seek, SeekFrom, BufReader, BufRead};
 use std::path::Path;
-use std::io::{stderr, Write};
+use std::process::Command;
 
-use git2::{Repository, Status, Index};
+use git2::{Repository, Status, Index, Commit};
+use tempfile::{NamedTempFile, NamedTempFileOptions};
 
 use config::{Config};
 use version::{Version};
+
 
 
 pub fn check_status(cfg: &Config, dir: &Path)
@@ -38,6 +44,110 @@ pub fn check_status(cfg: &Config, dir: &Path)
     }
 
     Ok(repo)
+}
+
+fn message_file(repo: &Repository, ver: &Version<String>, commit: Commit)
+    -> Result<NamedTempFile, Box<Error>>
+{
+    let mut file = NamedTempFileOptions::new()
+        .suffix(".TAG_COMMIT")
+        .create()?;
+    {
+        let mut buf = BufWriter::new(&mut file);
+        writeln!(&mut buf, "Version v{}: ", ver.num())?;
+        writeln!(&mut buf, "#")?;
+        writeln!(&mut buf, "# Write a message for tag:")?;
+        writeln!(&mut buf, "#   v{}", ver.num())?;
+        writeln!(&mut buf, "# Lines starting with '#' will be ignored.")?;
+        writeln!(&mut buf, "#")?;
+        writeln!(&mut buf, "# Log:")?;
+
+        let tag_names = repo.tag_names(Some("v*"))?;
+        let tags = tag_names.iter()
+            .filter_map(|name| name)
+            .filter_map(|name|
+                repo.refname_to_id(&format!("refs/tags/{}", name)).ok()
+                .and_then(|oid| repo.find_tag(oid).ok())
+                .map(|tag| (tag.target_id(), name)))
+            .collect::<HashMap<_, _>>();
+        println!("TAGS {:?}", tags);
+
+        let mut queue = VecDeque::new();
+        queue.push_back(commit);
+        for _ in 0..100 {
+            let commit = match queue.pop_front() {
+                Some(x) => x,
+                None => break,
+            };
+            let msg = commit.message()
+                .and_then(|x| x.lines().next())
+                .unwrap_or("<invalid message>");
+            if let Some(tag_name) = tags.get(&commit.id()) {
+                writeln!(&mut buf, "#   {:0.8} [tag: {}] {}",
+                    commit.id(), tag_name, msg)?;
+                break;
+            } else {
+                writeln!(&mut buf, "#   {:0.8} {}", commit.id(), msg)?;
+            }
+            for pid in commit.parent_ids() {
+                queue.push_back(repo.find_commit(pid)?);
+            }
+        }
+    }
+    Ok(file)
+}
+
+fn spawn_editor(file_name: &Path) -> Result<(), Box<Error>> {
+    if let Some(editor) = env::var_os("VISUAL") {
+        let mut cmd = Command::new(editor);
+        cmd.arg(file_name);
+        match cmd.status() {
+            Ok(s) if s.success() => return Ok(()),
+            Ok(s) => return Err(format!("editor exited with {}", s).into()),
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+    if let Some(editor) = env::var_os("EDITOR") {
+        let mut cmd = Command::new(editor);
+        cmd.arg(file_name);
+        match cmd.status() {
+            Ok(s) if s.success() => return Ok(()),
+            Ok(s) => return Err(format!("editor exited with {}", s).into()),
+            Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+    let mut cmd = Command::new("vim");
+    cmd.arg(file_name);
+    match cmd.status() {
+        Ok(s) if s.success() => return Ok(()),
+        Ok(s) => return Err(format!("vim exited with {}", s).into()),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+        }
+        Err(e) => return Err(e.into()),
+    }
+    let mut cmd = Command::new("vi");
+    cmd.arg(file_name);
+    match cmd.status() {
+        Ok(s) if s.success() => return Ok(()),
+        Ok(s) => return Err(format!("vi exited with {}", s).into()),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+        }
+        Err(e) => return Err(e.into()),
+    }
+    let mut cmd = Command::new("nano");
+    cmd.arg(file_name);
+    match cmd.status() {
+        Ok(s) if s.success() => return Ok(()),
+        Ok(s) => return Err(format!("nano exited with {}", s).into()),
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+        }
+        Err(e) => return Err(e.into()),
+    }
+    Err(format!("no editor found").into())
 }
 
 pub fn commit_version(cfg: &Config, dir: &Path, repo: &mut Repository,
@@ -84,9 +194,26 @@ pub fn commit_version(cfg: &Config, dir: &Path, repo: &mut Repository,
         }
         file_index.write()?;
 
+        let commit = repo.find_commit(oid)?;
+        let mut message_file = message_file(repo, ver, commit)?;
+        spawn_editor(message_file.path())?;
+        message_file.seek(SeekFrom::Start(0))?;
+        let mut message = String::with_capacity(512);
+        for line in BufReader::new(message_file).lines() {
+            let line = line?;
+            if !line.starts_with("#") {
+                message.push_str(line.trim_right());
+                message.push('\n');
+            }
+        }
+        if message.trim() == "" {
+            return Err("tag description is empty, \
+                aborting tag creation.".into())
+        }
+
         repo.tag(&format!("v{}", ver.num()),
             &commit_ob, &sig,
-            &format!("Version v{}", ver.num()),
+            &message.trim(),
             false)?;
         println!("Created tag v{}", ver.num());
         println!("To push tag run:");

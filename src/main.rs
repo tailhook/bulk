@@ -8,6 +8,7 @@ extern crate rustc_serialize;
 extern crate scan_dir;
 extern crate sha2;
 extern crate tar;
+extern crate tempfile;
 extern crate time;
 extern crate unicase;
 #[macro_use] extern crate log;
