@@ -309,6 +309,7 @@ pub fn set_version(args: Vec<String>) {
     let mut version = Version(String::new());
     let mut dry_run = false;
     let mut force = false;
+    let mut git = false;
     {
         let mut ap = ArgumentParser::new();
         ap.refer(&mut config)
@@ -318,6 +319,9 @@ pub fn set_version(args: Vec<String>) {
             .add_option(&["--base-dir"], Parse, "
                 Base directory for all paths in config. \
                 Current working directory by default.");
+        ap.refer(&mut git)
+            .add_option(&["-g", "--git-commit-and-tag"], StoreTrue, "
+                Commit using git and create a tag");
         ap.refer(&mut dry_run)
             .add_option(&["--dry-run"], StoreTrue, "
                 Don't write version, just show changes");
@@ -342,6 +346,18 @@ pub fn set_version(args: Vec<String>) {
         }
     };
 
+    let mut git_repo = if git {
+        match commit::check_status(&cfg, &dir) {
+            Ok(repo) => Some(repo),
+            Err(text) => {
+                writeln!(&mut stderr(), "Git error: {}", text).ok();
+                exit(2);
+            }
+        }
+    } else {
+        None
+    };
+
     match _set(&cfg, &dir, version.num(), dry_run, force,
         Verbosity::Verbose)
     {
@@ -349,6 +365,16 @@ pub fn set_version(args: Vec<String>) {
         Err(text) => {
             writeln!(&mut stderr(), "Error: {}", text).ok();
             exit(1);
+        }
+    }
+
+    if let Some(ref mut repo) = git_repo {
+        match commit::commit_version(&cfg, &dir, repo, &version, dry_run) {
+            Ok(_) => {}
+            Err(text) => {
+                writeln!(&mut stderr(), "Error commiting: {}", text).ok();
+                exit(1);
+            }
         }
     }
 }
