@@ -46,7 +46,8 @@ pub fn check_status(cfg: &Config, dir: &Path)
     Ok(repo)
 }
 
-fn message_file(repo: &Repository, ver: &Version<String>, commit: Commit)
+fn message_file(repo: &Repository, ver: &Version<String>, commit: Commit,
+    initial_tag: Option<String>)
     -> Result<NamedTempFile, Box<Error>>
 {
     let mut file = NamedTempFileOptions::new()
@@ -84,7 +85,13 @@ fn message_file(repo: &Repository, ver: &Version<String>, commit: Commit)
             if let Some(tag_name) = tags.get(&commit.id()) {
                 writeln!(&mut buf, "#   {:0.8} [tag: {}] {}",
                     commit.id(), tag_name, msg)?;
-                break;
+                if let Some(ref init_tag) = initial_tag {
+                    if init_tag == tag_name {
+                        break;
+                    }
+                } else {
+                    break;
+                }
             } else {
                 writeln!(&mut buf, "#   {:0.8} {}", commit.id(), msg)?;
             }
@@ -150,7 +157,8 @@ fn spawn_editor(file_name: &Path) -> Result<(), Box<Error>> {
 }
 
 pub fn commit_version(cfg: &Config, dir: &Path, repo: &mut Repository,
-    ver: &Version<String>, dry_run: bool)
+    ver: &Version<String>, original_version: Option<&Version<String>>,
+    dry_run: bool)
     -> Result<(), Box<Error>>
 {
     let mut file_index = repo.index()?;
@@ -194,7 +202,8 @@ pub fn commit_version(cfg: &Config, dir: &Path, repo: &mut Repository,
         file_index.write()?;
 
         let commit = repo.find_commit(oid)?;
-        let mut message_file = message_file(repo, ver, commit)?;
+        let mut message_file = message_file(repo, ver, commit,
+            original_version.map(|x| format!("v{}", x.num())))?;
         spawn_editor(message_file.path())?;
         message_file.seek(SeekFrom::Start(0))?;
         let mut message = String::with_capacity(512);

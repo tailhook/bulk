@@ -371,7 +371,8 @@ pub fn set_version(args: Vec<String>) {
     }
 
     if let Some(ref mut repo) = git_repo {
-        match commit::commit_version(&cfg, &dir, repo, &version, dry_run) {
+        match commit::commit_version(&cfg, &dir, repo, &version, None, dry_run)
+        {
             Ok(_) => {}
             Err(text) => {
                 writeln!(&mut stderr(), "Error commiting: {}", text).ok();
@@ -471,7 +472,9 @@ pub fn incr_version(args: Vec<String>) {
     }
 
     if let Some(ref mut repo) = git_repo {
-        match commit::commit_version(&cfg, &dir, repo, &nver, dry_run) {
+        match commit::commit_version(&cfg, &dir, repo, &nver,
+            Some(&ver), dry_run)
+        {
             Ok(_) => {}
             Err(text) => {
                 writeln!(&mut stderr(), "Error commiting: {}", text).ok();
