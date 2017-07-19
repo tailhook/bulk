@@ -70,7 +70,6 @@ fn message_file(repo: &Repository, ver: &Version<String>, commit: Commit)
                 .and_then(|oid| repo.find_tag(oid).ok())
                 .map(|tag| (tag.target_id(), name)))
             .collect::<HashMap<_, _>>();
-        println!("TAGS {:?}", tags);
 
         let mut queue = VecDeque::new();
         queue.push_back(commit);
