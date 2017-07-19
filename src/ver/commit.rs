@@ -89,6 +89,8 @@ pub fn commit_version(cfg: &Config, dir: &Path, repo: &mut Repository,
             &format!("Version v{}", ver.num()),
             false)?;
         println!("Created tag v{}", ver.num());
+        println!("To push tag run:");
+        println!("  git push --atomic origin HEAD v{}", ver.num());
     }
     Ok(())
 }
