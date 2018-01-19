@@ -1,4 +1,7 @@
 use std::cmp::min;
+
+use time;
+
 use version::{Version, Component};
 
 #[derive(Debug, Clone, Copy)]
@@ -7,14 +10,17 @@ pub enum Bump {
     Minor,
     Major,
     Component(u8),
+    DateMajor,
 }
 
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
         NonNumericComponent(val: String) {
-            description("component we're trying to increment is non-numeric")
             display("component {:?} is non-numeric", val)
+        }
+        FutureDate(val: String) {
+            display("current version {:?} represents date in future", val)
         }
     }
 }
@@ -63,11 +69,40 @@ pub fn bump_version<T: AsRef<str>>(ver: &Version<T>, how: Bump)
             };
             return bump_version(ver, Bump::Component(cmp as u8));
         }
+        Bump::DateMajor => {
+            let tm = time::now_utc();
+            let new_ver = ((tm.tm_year - 100) * 10000 +
+                (tm.tm_mon+1) * 100 +
+                tm.tm_mday) as u64;
+            let mut components = ver.components();
+            match components.next() {
+                Some(Component::Numeric(x)) if x == new_ver => {}
+                Some(Component::Numeric(x)) if x >= new_ver => {
+                    return Err(Error::FutureDate(ver.as_ref().to_string()));
+                }
+                Some(Component::Numeric(_)) |
+                None => {
+                    return Ok(Version(format!("v{}.0", new_ver)));
+                }
+                Some(Component::String(x)) => {
+                    return Err(Error::NonNumericComponent(x.into()));
+                },
+            }
+            let n: u64 = match components.next() {
+                Some(Component::Numeric(x)) => x+1,
+                Some(Component::String(x)) => {
+                    return Err(Error::NonNumericComponent(x.into()));
+                },
+                None => 1,
+            };
+            return Ok(Version(format!("v{}.{}", new_ver, n)));
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
+    use time;
     use super::bump_version;
     use super::Bump;
     use super::Bump::*;
@@ -81,6 +116,11 @@ mod test {
     fn bump_semver(ver: &str, bump: Bump) -> String {
         format!("{}",
             bump_version(&Version(ver), bump)
+            .unwrap())
+    }
+    fn bump_date(ver: &str) -> String {
+        format!("{}",
+            bump_version(&Version(ver), DateMajor)
             .unwrap())
     }
     #[test]
@@ -143,5 +183,19 @@ mod test {
         assert_eq!(bump_semver("v0", Patch), "v0.0.1");
         assert_eq!(bump_semver("v7.38.96", Patch), "v7.38.97");
         assert_eq!(bump_semver("v7.13.99", Patch), "v7.13.100");
+    }
+    #[test]
+    fn test_date() {
+        let dest = time::strftime("v%y%m%d.0", &time::now_utc()).unwrap();
+        let dest1 = time::strftime("v%y%m%d.1", &time::now_utc()).unwrap();
+        let dest2 = time::strftime("v%y%m%d.2", &time::now_utc()).unwrap();
+        let dest9 = time::strftime("v%y%m%d.9", &time::now_utc()).unwrap();
+        let dest10 = time::strftime("v%y%m%d.10", &time::now_utc()).unwrap();
+        let dest11 = time::strftime("v%y%m%d.11", &time::now_utc()).unwrap();
+        assert_eq!(bump_date("v1.2.0"), dest);
+        assert_eq!(bump_date(&dest), dest1);
+        assert_eq!(bump_date(&dest1), dest2);
+        assert_eq!(bump_date(&dest9), dest10);
+        assert_eq!(bump_date(&dest10), dest11);
     }
 }

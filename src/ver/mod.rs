@@ -416,6 +416,10 @@ pub fn incr_version(args: Vec<String>) {
                 Bump second component of a version")
             .add_option(&["-3"], StoreConst(Bump::Component(3)), "
                 Bump third component of a version")
+            .add_option(&["-d", "--date-major"], StoreConst(Bump::DateMajor), "
+                Set version to a date-based `yymmdd.patch`, like v180113.0.
+                Bump patch revision if current version has the same date.
+                Note: date is UTC one to avoid issues with time going back.")
             .required();
 
         match ap.parse(args, &mut stdout(), &mut stderr()) {
