@@ -31,3 +31,7 @@ tempfile = "2.1.6"
 [[bin]]
 name = "bulk"
 path = "src/main.rs"
+
+[profile.release]
+debug = true
+lto = true
