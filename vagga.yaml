@@ -116,10 +116,10 @@ containers:
     - !UbuntuUniverse
     - !Install [build-essential, ca-certificates, musl-tools, cmake, zlib1g-dev]
     - !TarInstall
-      url: "https://static.rust-lang.org/dist/rust-1.18.0-x86_64-unknown-linux-gnu.tar.gz"
+      url: "https://static.rust-lang.org/dist/rust-1.23.0-x86_64-unknown-linux-gnu.tar.gz"
       script: "./install.sh --prefix=/usr --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo"
     - !TarInstall
-      url: "https://static.rust-lang.org/dist/rust-std-1.18.0-x86_64-unknown-linux-musl.tar.gz"
+      url: "https://static.rust-lang.org/dist/rust-std-1.23.0-x86_64-unknown-linux-musl.tar.gz"
       script: "./install.sh --prefix=/musl \
                --components=rust-std-x86_64-unknown-linux-musl"
     - !Sh 'ln -s /musl/lib/rustlib/x86_64-unknown-linux-musl /usr/lib/rustlib/x86_64-unknown-linux-musl'
@@ -149,7 +149,7 @@ containers:
 
   doc:
     setup:
-    - !Alpine v3.4
+    - !Alpine v3.7
     - !Install [make, python3]
     - !PipConfig { dependencies: true }
     - !Py3Install [sphinx]
