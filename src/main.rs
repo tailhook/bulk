@@ -1,6 +1,6 @@
 extern crate argparse;
 extern crate env_logger;
-extern crate flate2;
+extern crate libflate;
 extern crate git2;
 extern crate quire;
 extern crate regex;
@@ -121,7 +121,7 @@ fn main() {
         ap.stop_on_first_argument(true);
         ap.parse_args_or_exit();
     }
-    env_logger::init().expect("init logging system");
+    env_logger::init();
     match command {
         Action::Help => {
             println!("Usage:");

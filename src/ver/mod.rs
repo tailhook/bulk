@@ -96,7 +96,7 @@ fn _check(config: &Path, dir: &Path, git_ver: Option<(String, bool)>)
                             let cver = scanner.partial.as_ref()
                                 .map(|re| re.captures(pver)
                                     .expect("partial-version must match")
-                                    .at(0).unwrap())
+                                    .get(0).unwrap().as_str())
                                 .unwrap_or(&pver[..]);
                             if cver != ver {
                                 result = false;
@@ -207,7 +207,7 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
                         let partver = citer.scanner().partial.as_ref()
                             .map(|re| re.captures(version)
                                 .expect("partial-version must match")
-                                .at(0).unwrap())
+                                .get(0).unwrap().as_str())
                             .unwrap_or(&version[..]);
 
                         let nline = String::from(&line[..start])
@@ -222,7 +222,7 @@ fn _write_tmp(cfg: &Config, dir: &Path, version: &str,
                             let cver = citer.scanner().partial.as_ref()
                                 .map(|re| re.captures(pver)
                                     .expect("partial-version must match")
-                                    .at(0).unwrap())
+                                    .get(0).unwrap().as_str())
                                 .unwrap_or(&pver[..]);
                             if cver != ver {
                                 let msg = format!(

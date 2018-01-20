@@ -91,12 +91,12 @@ impl<'a> Iter<'a> {
                 None
             }
             Body => match self.scanner.regex.captures(line) {
-                Some(cpt) => match cpt.pos(1) {
-                    Some((x, y)) if x == y => {
+                Some(cpt) => match cpt.get(1) {
+                    Some(m) if m.start() == m.end() => {
                         self.error = Some(EmptyVersion(line_no));
                         return None;
                     }
-                    Some(x) => Some(x),
+                    Some(m) => Some((m.start(), m.end())),
                     None => {
                         self.error = Some(NoCapture(line_no));
                         return None;

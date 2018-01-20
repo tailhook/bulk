@@ -5,8 +5,7 @@ use std::path::{PathBuf, Path};
 use std::collections::{BTreeSet, BTreeMap, HashMap};
 
 use time::now_utc;
-use sha2::sha2::Sha256;
-use sha2::digest::Digest;
+use sha2::{Sha256, Digest};
 use unicase::UniCase;
 use quick_error::ResultExt;
 
@@ -237,7 +236,10 @@ impl Packages {
                 try!(out.write_kv("SHA256", &p.sha256));
                 try!(out.write_kv("Size", &format!("{}", p.size)));
                 for (k, v) in &p.metadata {
-                    if *k != "Package" && *k != "Version" && *k != "Architecture" {
+                    if *k != UniCase::new("Package") &&
+                       *k != UniCase::new("Version") &&
+                       *k != UniCase::new("Architecture")
+                    {
                         try!(out.write_kv(k, v));
                     }
                 }
@@ -393,7 +395,7 @@ impl Repository {
 
             self.suites.get_mut(&suite).expect("suite already created")
             .sha256.insert(format!("{}/binary-{}/Packages", cmp, arch),
-                (buf.len() as u64, hash.result_str()));
+                (buf.len() as u64, format!("{:x}", hash.result())));
         }
         for (_, suite) in self.suites {
             let dir = self.root.join("dists").join(&suite.codename);

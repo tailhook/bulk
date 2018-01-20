@@ -12,7 +12,7 @@ use std::process::exit;
 
 use argparse::{ArgumentParser, Parse, ParseOption};
 use tar::{Builder as Archive};
-use flate2::{GzBuilder, Compression};
+use libflate::gzip;
 use scan_dir;
 
 use ver;
@@ -37,7 +37,7 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata, version: &String)
     {
         let control = try!(ar.add("control.tar.gz",
             mtime, 0, 0, 0o100644, SIZE_AUTO));
-        let creal = GzBuilder::new().write(control, Compression::Best);
+        let creal = gzip::Encoder::new(control)?;
         let mut arch = Archive::new(creal);
         let mut buf = Vec::with_capacity(1024);
         try!(format_deb_control(&mut buf, &meta, version, "amd64"));
@@ -47,7 +47,7 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata, version: &String)
     {
         let data = try!(ar.add("data.tar.gz",
             mtime, 0, 0, 0o100644, SIZE_AUTO));
-        let dreal = GzBuilder::new().write(data, Compression::Best);
+        let dreal = gzip::Encoder::new(data)?;
         let mut files = try!(scan_dir::ScanDir::all().skip_backup(true)
             .walk(dir, |iter| {
                 iter.map(|(entry, _name)| {

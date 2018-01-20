@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 
-use flate2::FlateReadExt;
+use libflate::gzip;
 use unicase::UniCase;
 
 use repo::ar;
@@ -35,7 +35,7 @@ pub fn gather_metadata<P: AsRef<Path>>(p: P) -> io::Result<PackageMeta> {
         }
     }
     let member = try!(arch.read_file("control.tar.gz"));
-    let mut arch = tar::Archive::new(try!(member.gz_decode()));
+    let mut arch = tar::Archive::new(try!(gzip::Decoder::new(member)));
     for entry in try!(arch.entries()) {
         let entry = try!(entry);
         if try!(entry.path()) == Path::new("control") {

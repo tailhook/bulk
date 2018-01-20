@@ -2,8 +2,7 @@ use std::io::{self, Read};
 use std::fs::File;
 use std::path::Path;
 
-use sha2::sha2::Sha256;
-use sha2::digest::Digest;
+use sha2::{Sha256, Digest};
 
 
 pub fn hash_stream<D: Digest, R: Read>(hash: &mut D, reader: &mut R)
@@ -26,5 +25,5 @@ pub fn hash_file<F: AsRef<Path>>(filename: F) -> io::Result<String> {
     let mut sha256 = Sha256::new();
     let mut file = try!(File::open(filename.as_ref()));
     try!(hash_stream(&mut sha256, &mut file));
-    return Ok(sha256.result_str());
+    return Ok(format!("{:x}", sha256.result()));
 }

@@ -21,7 +21,7 @@ pub fn parse_control<R: Read>(r: R)
         let line = try!(line);
         if line.len() == 0 {
             if let Some((key, val)) = buf.take() {
-                current_hash.insert(UniCase(key), val);
+                current_hash.insert(UniCase::new(key), val);
             }
             if current_hash.len() > 0 {
                 res.push(replace(&mut current_hash, HashMap::new()));
@@ -37,7 +37,7 @@ pub fn parse_control<R: Read>(r: R)
             }
         } else {
             if let Some((key, val)) = buf.take() {
-                current_hash.insert(UniCase(key), val);
+                current_hash.insert(UniCase::new(key), val);
             }
             let mut pair = line.splitn(2, ':');
             match (pair.next(), pair.next()) {
@@ -49,7 +49,7 @@ pub fn parse_control<R: Read>(r: R)
         }
     }
     if let Some((key, val)) = buf.take() {
-        current_hash.insert(UniCase(key), val);
+        current_hash.insert(UniCase::new(key), val);
     }
     if current_hash.len() > 0 {
         res.push(current_hash);
