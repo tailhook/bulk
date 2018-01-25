@@ -3,17 +3,10 @@ use std::iter::{Peekable};
 use std::cmp::Ordering;
 
 use argparse::FromCommandLine;
-use rustc_serialize::{Decodable, Decoder};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Version<T: AsRef<str>>(pub T);
 pub struct Components<'a>(&'a str, Peekable<CharIndices<'a>>);
-
-impl Decodable for Version<String> {
-    fn decode<D: Decoder>(d: &mut D) -> Result<Self, D::Error> {
-        Decodable::decode(d).map(Version)
-    }
-}
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Component<'a> {

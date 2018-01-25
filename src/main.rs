@@ -4,7 +4,7 @@ extern crate libflate;
 extern crate git2;
 extern crate quire;
 extern crate regex;
-extern crate rustc_serialize;
+extern crate serde;
 extern crate scan_dir;
 extern crate sha2;
 extern crate tar;
@@ -15,6 +15,7 @@ extern crate unicase;
 #[macro_use] extern crate matches;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate quick_error;
+#[macro_use] extern crate serde_derive;
 
 
 mod config;

@@ -1,14 +1,13 @@
-use std::default::Default;
 use std::path::{Path, PathBuf};
 
 use quire::validate::{Sequence, Structure, Enum, Nothing, Numeric, Scalar};
-use quire::parse_config;
+use quire::{parse_config, Options};
 
 use version::Version;
 use bulk_version::MinimumVersion;
 
 
-#[derive(RustcDecodable, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Metadata {
     pub name: String,
     pub short_description: String,
@@ -17,12 +16,12 @@ pub struct Metadata {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(RustcDecodable, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Copy, Debug)]
 pub enum RepositoryType {
     debian,
 }
 
-#[derive(RustcDecodable, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Repository {
     pub kind: RepositoryType,
     pub suite: Option<String>,
@@ -35,7 +34,7 @@ pub struct Repository {
     pub add_empty_i386_repo: bool,
 }
 
-#[derive(RustcDecodable, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Config {
     pub minimum_bulk: Version<String>,
     pub metadata: Option<Metadata>,
@@ -43,7 +42,7 @@ pub struct Config {
     pub versions: Vec<VersionHolder>,
 }
 
-#[derive(RustcDecodable, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct VersionHolder {
     pub block_start: Option<String>,
     pub block_end: Option<String>,
@@ -84,6 +83,7 @@ impl Config {
             .member("partial_version", Scalar::new().optional())))
     }
     pub fn parse_file(p: &Path) -> Result<Config, String> {
-        parse_config(p, &Config::validator(), Default::default())
+        Ok(parse_config(p, &Config::validator(), &Options::default())
+            .map_err(|e| e.to_string())?)
     }
 }
