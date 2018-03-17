@@ -21,12 +21,12 @@ regex = "0.2.5"
 lazy_static = "1.0.0"
 unicase = "2.1.0"
 log = "0.4.1"
-env_logger = "0.5.2"
+env_logger = "0.5.5"
 sha2 = "0.7.0"
 time = "0.1.39"
 matches = "0.1.2"
 quick-error = "1.1.0"
-git2 = { version="0.6.11", default-features=false }
+git2 = { version="0.7.0", default-features=false }
 tempfile = "2.2.0"
 
 [[bin]]
