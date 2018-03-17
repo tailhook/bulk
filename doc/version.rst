@@ -22,8 +22,8 @@ here is how we track versions in typical python project:
       regex: ^\s*version\s*=\s*["']([^"']+)["']
 
 
-    # Also it's a good idea to put library version into a __version__ attribute
-    # in the version itself
+    # Also it's a good idea to put library version into
+    # a __version__ attribute of the module itself
     - file: your_module/__init__.py
       regex: ^__version__\s*=\s*["']([^"']+)["']
 
