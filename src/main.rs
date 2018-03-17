@@ -127,7 +127,7 @@ fn main() {
         Action::Help => {
             println!("Usage:");
             println!("    bulk \
-                {{pack,repo-add,get-version,set-verion,\
+                {{pack,repo-add,get-version,set-version,\
                   check-version,with-version,with-git-version}} \
                 [options]");
         }
