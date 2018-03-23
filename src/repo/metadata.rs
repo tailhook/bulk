@@ -1,4 +1,4 @@
-use std::io::{self, Read};
+use std::io::{self, Read, BufReader};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
@@ -25,7 +25,8 @@ fn error(text: &'static str) -> io::Error {
 
 pub fn gather_metadata<P: AsRef<Path>>(p: P) -> io::Result<PackageMeta> {
     let path = p.as_ref();
-    let mut arch = try!(ar::Archive::new(try!(fs::File::open(path))));
+    let buf = BufReader::new(fs::File::open(path)?);
+    let mut arch = ar::Archive::new(buf)?;
     {
         let mut buf = String::with_capacity(4);
         let mut member = try!(arch.read_file("debian-binary"));
