@@ -3,7 +3,7 @@ mod tar;
 mod deb;
 
 use std::io;
-use std::io::{stdout, stderr, Write};
+use std::io::{stdout, stderr, Write, BufWriter};
 use std::env;
 use std::fs::{File, create_dir, rename, remove_file};
 use std::path::{Path, PathBuf};
@@ -28,7 +28,7 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata, version: &String)
 {
     let mtime = env::var("SOURCE_DATE_EPOCH").ok()
         .and_then(|x| x.parse().ok()).unwrap_or(1);
-    let file = try!(File::create(&dest));
+    let file = BufWriter::new(File::create(&dest)?);
     let mut ar = try!(ArArchive::new(file));
 
     try!(ar.add("debian-binary", mtime, 0, 0, 0o100644, 4)
