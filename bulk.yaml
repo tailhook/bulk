@@ -38,9 +38,9 @@ versions:
   regex: ^version\s*=\s*"(\S+)"
 
 - file: Cargo.lock
-  block-start: ^\[root\]
-  block-end: ^\[.*\]
+  block-start: ^name\s*=\s*"bulk"
   regex: ^version\s*=\s*"(\S+)"
+  block-end: ^\[.*\]
 
 - file: README.rst
   regex: bulk-(\S+)\.tar\.gz
