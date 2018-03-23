@@ -37,17 +37,20 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata, version: &String)
     {
         let control = try!(ar.add("control.tar.gz",
             mtime, 0, 0, 0o100644, SIZE_AUTO));
-        let creal = gzip::Encoder::new(control)?;
-        let mut arch = Archive::new(creal);
-        let mut buf = Vec::with_capacity(1024);
-        try!(format_deb_control(&mut buf, &meta, version, "amd64"));
-        try!(arch.append_blob("control", mtime, &buf));
-        try!(arch.finish());
+        let mut creal = gzip::Encoder::new(control)?;
+        {
+            let mut arch = Archive::new(&mut creal);
+            let mut buf = Vec::with_capacity(1024);
+            format_deb_control(&mut buf, &meta, version, "amd64")?;
+            arch.append_blob("control", mtime, &buf)?;
+            arch.finish()?;
+        }
+        creal.finish().into_result()?;
     }
     {
         let data = try!(ar.add("data.tar.gz",
             mtime, 0, 0, 0o100644, SIZE_AUTO));
-        let dreal = gzip::Encoder::new(data)?;
+        let mut dreal = gzip::Encoder::new(data)?;
         let mut files = try!(scan_dir::ScanDir::all().skip_backup(true)
             .walk(dir, |iter| {
                 iter.map(|(entry, _name)| {
@@ -57,11 +60,14 @@ fn write_deb(dest: &Path, dir: &Path, meta: &Metadata, version: &String)
                 errs.iter().map(ToString::to_string).collect::<Vec<_>>()[..]
                     .join("\n"))));
         files.sort();
-        let mut arch = Archive::new(dreal);
-        for fpath in files {
-            try!(arch.append_file_at(dir, fpath, mtime));
+        {
+            let mut arch = Archive::new(&mut dreal);
+            for fpath in files {
+                arch.append_file_at(dir, fpath, mtime)?;
+            }
+            arch.finish()?;
         }
-        try!(arch.finish());
+        dreal.finish().into_result()?;
     }
     Ok(())
 }
