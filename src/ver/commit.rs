@@ -7,7 +7,7 @@ use std::path::Path;
 use std::process::Command;
 
 use git2::{Repository, Status, Index, Commit};
-use tempfile::{NamedTempFile, NamedTempFileOptions};
+use tempfile::{NamedTempFile, Builder};
 
 use config::{Config};
 use version::{Version};
@@ -50,9 +50,9 @@ fn message_file(repo: &Repository, ver: &Version<String>, commit: Commit,
     initial_tag: Option<String>)
     -> Result<NamedTempFile, Box<Error>>
 {
-    let mut file = NamedTempFileOptions::new()
+    let mut file = Builder::new()
         .suffix(".TAG_COMMIT")
-        .create()?;
+        .tempfile()?;
     {
         let mut buf = BufWriter::new(&mut file);
         writeln!(&mut buf, "Version v{}: ", ver.num())?;

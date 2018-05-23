@@ -17,7 +17,7 @@ argparse = "0.2"
 serde = "1.0.0"
 serde_derive = "1.0.27"
 libflate = "0.1.13"
-regex = "0.2.5"
+regex = "1.0.0"
 lazy_static = "1.0.0"
 unicase = "2.1.0"
 log = "0.4.1"
@@ -27,7 +27,7 @@ time = "0.1.39"
 matches = "0.1.2"
 quick-error = "1.1.0"
 git2 = { version="0.7.0", default-features=false }
-tempfile = "2.2.0"
+tempfile = "3.0.2"
 
 [[bin]]
 name = "bulk"
