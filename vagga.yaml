@@ -92,10 +92,15 @@ commands:
     write-mode: transient-hard-link-copy
     run: *installtest
 
+  _test-bionic: !Command
+    container: bionic-install
+    write-mode: transient-hard-link-copy
+    run: *installtest
+
   full-cycle-test: !Command
     description: "Build package, add to repo and install"
     container: rust-musl
-    prerequisites: [package, repo-add, _test-trusty, _test-xenial]
+    prerequisites: [package, repo-add, _test-trusty, _test-xenial, _test-bionic]
     run: [echo, "Done"]
 
   doc: !Command
@@ -112,14 +117,14 @@ containers:
       PATH: /musl/bin:/usr/local/bin:/usr/bin:/bin
       HOME: /work/target
     setup:
-    - !Ubuntu trusty
+    - !Ubuntu bionic
     - !UbuntuUniverse
     - !Install [build-essential, ca-certificates, musl-tools, cmake, zlib1g-dev]
     - !TarInstall
-      url: "https://static.rust-lang.org/dist/rust-1.23.0-x86_64-unknown-linux-gnu.tar.gz"
+      url: "https://static.rust-lang.org/dist/rust-1.26.0-x86_64-unknown-linux-gnu.tar.gz"
       script: "./install.sh --prefix=/usr --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo"
     - !TarInstall
-      url: "https://static.rust-lang.org/dist/rust-std-1.23.0-x86_64-unknown-linux-musl.tar.gz"
+      url: "https://static.rust-lang.org/dist/rust-std-1.26.0-x86_64-unknown-linux-musl.tar.gz"
       script: "./install.sh --prefix=/musl \
                --components=rust-std-x86_64-unknown-linux-musl"
     - !Sh 'ln -s /musl/lib/rustlib/x86_64-unknown-linux-musl /usr/lib/rustlib/x86_64-unknown-linux-musl'
@@ -140,6 +145,16 @@ containers:
   xenial-install:
     setup:
     - !Ubuntu xenial
+    - !UbuntuUniverse
+    - !Install [webfs]
+    - !UbuntuRepo
+      url: http://localhost:7777/
+      suite: static
+      components: [bulk-testing]
+
+  bionic-install:
+    setup:
+    - !Ubuntu bionic
     - !UbuntuUniverse
     - !Install [webfs]
     - !UbuntuRepo
