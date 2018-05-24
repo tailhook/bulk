@@ -28,6 +28,7 @@ matches = "0.1.2"
 quick-error = "1.1.0"
 git2 = { version="0.7.0", default-features=false }
 tempfile = "3.0.2"
+failure = "0.1.1"
 
 [[bin]]
 name = "bulk"

@@ -5,9 +5,9 @@ mod debian;
 
 use std::io::{stdout, stderr, Write};
 use std::path::{Path, PathBuf};
-use std::error::Error;
 use std::process::exit;
 
+use failure::{Error, err_msg};
 use regex::Regex;
 use argparse::{ArgumentParser, Parse, Collect, StoreConst};
 
@@ -17,21 +17,22 @@ use repo::metadata::gather_metadata;
 
 fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
     on_conflict: debian::ConflictResolution)
-    -> Result<(), Box<Error>>
+    -> Result<(), Error>
 {
-    let packages = try!(packages.iter().map(gather_metadata)
-        .collect::<Result<Vec<_>, _>>());
+    let packages = packages.iter().map(gather_metadata)
+        .collect::<Result<Vec<_>, _>>()?;
     debug!("Packages read {:#?}", packages);
-    let cfg = try!(Config::parse_file(&config));
+    let cfg = Config::parse_file(&config)
+        .map_err(|e| format_err!("can't parse config {:?}: {}", config, e))?;
     let mut debian = debian::Repository::new(dir);
 
     for repo in &cfg.repositories {
         let version_re = match repo.match_version {
-            Some(ref re) => Some(try!(Regex::new(re))),
+            Some(ref re) => Some(Regex::new(re)?),
             None => None,
         };
         let skip_re = match repo.skip_version {
-            Some(ref re) => Some(try!(Regex::new(re))),
+            Some(ref re) => Some(Regex::new(re)?),
             None => None,
         };
         let matching = packages.iter()
@@ -47,16 +48,16 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
                 (RepositoryType::debian, &Some(ref suite), &Some(ref comp))
                 => {
                     for p in matching {
-                        try!(try!(debian.open(suite, comp, &p.arch))
-                            .add_package(p, on_conflict));
+                        debian.open(suite, comp, &p.arch)?
+                            .add_package(p, on_conflict)?;
                         if repo.add_empty_i386_repo && p.arch != "i386" {
-                            try!(debian.open(suite, comp, "i386"));
+                            debian.open(suite, comp, "i386")?;
                         }
                     }
                 }
                 (RepositoryType::debian, _, _) => {
-                    return Err("Debian repository requires suite and \
-                               component to be specified".into());
+                    return Err(err_msg("Debian repository requires suite and \
+                               component to be specified"));
 
                 }
             }
@@ -72,7 +73,7 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
             _ => unreachable!(),
         }
     }
-    try!(debian.write());
+    debian.write()?;
     // TODO(tailhook) remove removed files
     Ok(())
 }

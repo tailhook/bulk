@@ -11,6 +11,7 @@ extern crate tar;
 extern crate tempfile;
 extern crate time;
 extern crate unicase;
+#[macro_use] extern crate failure;
 #[macro_use] extern crate log;
 #[macro_use] extern crate matches;
 #[macro_use] extern crate lazy_static;
