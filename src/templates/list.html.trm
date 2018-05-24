@@ -1,0 +1,20 @@
+## syntax: indent
+## filter default: builtin.html_entities
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ metadata.name }}</title>
+  </head>
+  <body>
+    <h1>Package {{ metadata.name }}</h1>
+    <p>{{ metadata.short_description }}</h1>
+    <ul>
+        ## for version in versions
+        <li>
+            <a href="{{ version.filename }}">{{ version.filename }}</a>
+            <code>{{ version.sha256 }}</code>
+        <li>
+        ## endfor
+    </ul>
+  </body>
+</html>

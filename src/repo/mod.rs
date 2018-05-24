@@ -2,6 +2,7 @@ mod metadata;
 mod ar;
 mod deb;
 mod debian;
+mod html_links;
 
 use std::io::{stdout, stderr, Write};
 use std::path::{Path, PathBuf};
@@ -25,6 +26,7 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
     let cfg = Config::parse_file(&config)
         .map_err(|e| format_err!("can't parse config {:?}: {}", config, e))?;
     let mut debian = debian::Repository::new(dir);
+    let mut html_links = html_links::Repository::new(dir);
 
     for repo in &cfg.repositories {
         let version_re = match repo.match_version {
@@ -45,7 +47,7 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
             .collect::<Vec<_>>();
         if matching.len() > 0 {
             match (repo.kind, &repo.suite, &repo.component) {
-                (RepositoryType::debian, &Some(ref suite), &Some(ref comp))
+                (RepositoryType::Debian, &Some(ref suite), &Some(ref comp))
                 => {
                     for p in matching {
                         debian.open(suite, comp, &p.arch)?
@@ -55,17 +57,18 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
                         }
                     }
                 }
-                (RepositoryType::debian, _, _) => {
+                (RepositoryType::Debian, _, _) => {
                     return Err(err_msg("Debian repository requires suite and \
                                component to be specified"));
 
                 }
+                (RepositoryType::HtmlLinks, _, _) => unimplemented!(),
             }
         }
     }
     for repo in cfg.repositories {
         match (repo.kind, &repo.suite, &repo.component) {
-            (RepositoryType::debian, &Some(ref suite), &Some(ref comp)) => {
+            (RepositoryType::Debian, &Some(ref suite), &Some(ref comp)) => {
                 if let Some(limit) = repo.keep_releases {
                     debian.trim(suite, comp, limit);
                 }

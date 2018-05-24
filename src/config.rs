@@ -17,8 +17,10 @@ pub struct Metadata {
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize, Clone, Copy, Debug)]
+#[serde(rename_all="kebab-case")]
 pub enum RepositoryType {
-    debian,
+    Debian,
+    HtmlLinks,
 }
 
 #[derive(Deserialize, Clone, Debug)]
