@@ -14,6 +14,7 @@ use hash_file::hash_file;
 use deb_ext::WriteDebExt;
 use repo::metadata::PackageMeta;
 use repo::deb::parse_control;
+use repo::ConflictResolution;
 
 
 #[derive(Debug)]
@@ -56,13 +57,6 @@ pub struct Repository {
     suites: HashMap<String, Release>,
     components: HashMap<(String, String, String), Packages>,
     files: HashMap<PathBuf, FileInfo>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ConflictResolution {
-    Error,
-    Keep,
-    Replace,
 }
 
 quick_error! {

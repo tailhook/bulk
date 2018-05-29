@@ -26,14 +26,19 @@ pub enum RepositoryType {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Repository {
     pub kind: RepositoryType,
-    pub suite: Option<String>,
-    pub component: Option<String>,
     pub keep_releases: Option<usize>,
     pub match_version: Option<String>,
     pub skip_version: Option<String>,
+
+    // debian
+    pub suite: Option<String>,
+    pub component: Option<String>,
     // This hack is needed for old ubuntu which want to download indexes for
     // i386 packages even on amd64 even if you will never try to install them
     pub add_empty_i386_repo: bool,
+    // html-links
+    pub files: Option<PathBuf>,
+    pub index: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Clone, Debug)]

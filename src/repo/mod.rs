@@ -16,8 +16,16 @@ use config::{Config, RepositoryType};
 use repo::metadata::gather_metadata;
 
 
+#[derive(Debug, Clone, Copy)]
+pub enum ConflictResolution {
+    Error,
+    Keep,
+    Replace,
+}
+
+
 fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
-    on_conflict: debian::ConflictResolution)
+    on_conflict: ConflictResolution)
     -> Result<(), Error>
 {
     let packages = packages.iter().map(gather_metadata)
@@ -46,9 +54,15 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
             })
             .collect::<Vec<_>>();
         if matching.len() > 0 {
-            match (repo.kind, &repo.suite, &repo.component) {
-                (RepositoryType::Debian, &Some(ref suite), &Some(ref comp))
-                => {
+            match repo.kind {
+                RepositoryType::Debian => {
+                    let (suite, comp) = match (&repo.suite, &repo.component) {
+                        (&Some(ref suite), &Some(ref comp)) => (suite, comp),
+                        _ => {
+                            return Err(err_msg("Debian repository requires \
+                                    suite and component to be specified"));
+                        }
+                    };
                     for p in matching {
                         debian.open(suite, comp, &p.arch)?
                             .add_package(p, on_conflict)?;
@@ -57,12 +71,15 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
                         }
                     }
                 }
-                (RepositoryType::Debian, _, _) => {
-                    return Err(err_msg("Debian repository requires suite and \
-                               component to be specified"));
-
+                RepositoryType::HtmlLinks => {
+                    for p in matching {
+                        let empty_path = PathBuf::new();
+                        let index = repo.index.as_ref().unwrap_or(&empty_path);
+                        let files = repo.files.as_ref().unwrap_or(&empty_path);
+                        html_links.open(index, files)?
+                            .add_package(p, on_conflict)?;
+                    }
                 }
-                (RepositoryType::HtmlLinks, _, _) => unimplemented!(),
             }
         }
     }
@@ -86,7 +103,7 @@ pub fn repo_add(args: Vec<String>) {
     let mut config = PathBuf::from("bulk.yaml");
     let mut repo_dir = PathBuf::new();
     let mut packages = Vec::<String>::new();
-    let mut conflict = debian::ConflictResolution::Error;
+    let mut conflict = ConflictResolution::Error;
     {
         let mut ap = ArgumentParser::new();
         ap.refer(&mut config)
@@ -97,10 +114,10 @@ pub fn repo_add(args: Vec<String>) {
                 "Directory where repositories are stored");
         ap.refer(&mut conflict)
             .add_option(&["--skip-existing"],
-                StoreConst(debian::ConflictResolution::Keep),
+                StoreConst(ConflictResolution::Keep),
                 "Skip package if it's already in the repository")
             .add_option(&["--replace-existing"],
-                StoreConst(debian::ConflictResolution::Replace),
+                StoreConst(ConflictResolution::Replace),
                 "Replace package if it's already in the repository");
         ap.refer(&mut packages)
             .add_argument("packages", Collect,

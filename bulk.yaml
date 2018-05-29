@@ -32,16 +32,19 @@ repositories:
 
 - kind: html-links
   prefix: latest/bulk
+  files: files
   keep-releases: 1
   match-version: ^\d+\.\d+\.\d+$
 
 - kind: html-links
-  prefix: stable/bulk
+  index: stable/bulk
+  files: files
   keep-releases: 1000
   match-version: ^\d+\.\d+\.\d+$
 
 - kind: html-links
-  prefix: testing/bulk
+  index: testing/bulk
+  files: files
   keep-releases: 100
 
 
