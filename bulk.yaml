@@ -31,7 +31,7 @@ repositories:
   add-empty-i386-repo: true
 
 - kind: html-links
-  prefix: latest/bulk
+  index: latest/bulk
   files: files
   keep-releases: 1
   match-version: ^\d+\.\d+\.\d+$
