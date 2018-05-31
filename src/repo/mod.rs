@@ -64,10 +64,10 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
                         }
                     };
                     for p in matching {
-                        debian.open(suite, comp, &p.arch)?
+                        debian.open(&repo, &p.arch)?
                             .add_package(p, on_conflict)?;
                         if repo.add_empty_i386_repo && p.arch != "i386" {
-                            debian.open(suite, comp, "i386")?;
+                            debian.open(&repo, "i386")?;
                         }
                     }
                 }
@@ -81,16 +81,6 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
                     }
                 }
             }
-        }
-    }
-    for repo in cfg.repositories {
-        match (repo.kind, &repo.suite, &repo.component) {
-            (RepositoryType::Debian, &Some(ref suite), &Some(ref comp)) => {
-                if let Some(limit) = repo.keep_releases {
-                    debian.trim(suite, comp, limit);
-                }
-            }
-            _ => unreachable!(),
         }
     }
     debian.write()?;

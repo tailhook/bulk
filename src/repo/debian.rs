@@ -9,6 +9,7 @@ use sha2::{Sha256, Digest};
 use unicase::UniCase;
 use quick_error::ResultExt;
 
+use config;
 use version::Version;
 use hash_file::hash_file;
 use deb_ext::WriteDebExt;
@@ -37,8 +38,10 @@ pub struct Package {
 }
 
 #[derive(Debug)]
-pub struct Packages(BTreeMap<(String, String),
-                             BTreeMap<Version<String>, Package>>);
+pub struct Index {
+    packages: BTreeMap<(String, String), BTreeMap<Version<String>, Package>>,
+    limit: Option<usize>,
+}
 
 #[derive(Debug)]
 struct FileInfo {
@@ -48,14 +51,14 @@ struct FileInfo {
 }
 
 #[derive(Debug)]
-pub struct Component<'a>(&'a mut Packages,
+pub struct Component<'a>(&'a mut Index,
                          &'a mut HashMap<PathBuf, FileInfo>);
 
 #[derive(Debug)]
 pub struct Repository {
     root: PathBuf,
     suites: HashMap<String, Release>,
-    components: HashMap<(String, String, String), Packages>,
+    components: HashMap<(String, String, String), Index>,
     files: HashMap<PathBuf, FileInfo>,
 }
 
@@ -108,6 +111,9 @@ quick_error! {
 quick_error! {
     #[derive(Debug)]
     pub enum RepositoryError {
+        Config(val: &'static str) {
+            display("debian repository misconfiguration: {}", val)
+        }
         PackageConflict(pkg: Package) {
             description("package we are trying to add is already in repo")
             display("package {}-{}-{} is already in repository",
@@ -190,8 +196,8 @@ impl Release {
     }
 }
 
-impl Packages {
-    fn read(path: &Path) -> Result<Packages, PackagesRead> {
+impl Index {
+    fn read(path: &Path) -> Result<Index, PackagesRead> {
         use self::PackagesRead::*;
         let mut coll = BTreeMap::new();
         let items = try!(parse_control(try!(File::open(path))));
@@ -217,10 +223,13 @@ impl Packages {
                     metadata: control.into_iter().collect(),
                 });
         }
-        Ok(Packages(coll))
+        Ok(Index {
+            packages: coll,
+            limit: None,
+        })
     }
     fn output<W: Write>(&self, out: &mut W) -> io::Result<()> {
-        for versions in self.0.values() {
+        for versions in self.packages.values() {
             for p in versions.values() {
                 try!(out.write_kv("Package", &p.name));
                 try!(out.write_kv("Version", p.version.as_ref()));
@@ -242,8 +251,11 @@ impl Packages {
         }
         Ok(())
     }
-    pub fn new() -> Packages {
-        Packages(BTreeMap::new())
+    pub fn new() -> Index {
+        Index {
+          packages: BTreeMap::new(),
+          limit: None,
+        }
     }
 }
 
@@ -286,7 +298,7 @@ impl<'a> Component<'a> {
                 .map(|(k, v)| (k.clone(), v.clone())).collect(),
         };
         let component_arch = (pack.name.clone(), pack.arch.clone());
-        let versions = (self.0).0.entry(component_arch)
+        let versions = self.0.packages.entry(component_arch)
             .or_insert_with(BTreeMap::new);
         if versions.contains_key(&pkg.version) {
             use self::ConflictResolution::*;
@@ -314,9 +326,14 @@ impl Repository {
             files: HashMap::new(),
         }
     }
-    pub fn open(&mut self, suite: &str, component: &str, arch: &str)
+    pub fn open(&mut self, repo: &config::Repository, arch: &str)
         -> Result<Component, RepositoryError>
     {
+        let suite = repo.suite.as_ref()
+            .ok_or_else(|| RepositoryError::Config("suite must be specified"))?;
+        let component = repo.component.as_ref().ok_or_else(|| {
+            RepositoryError::Config("component must be specified")
+        })?;
         if !self.suites.contains_key(suite) {
             let release_file = self.root.join("dists").join(suite)
                                .join("Release");
@@ -324,53 +341,54 @@ impl Repository {
                 try!(Release::read(&release_file).context(&release_file))
             } else {
                 Release {
-                    codename: String::from(suite),
+                    codename: suite.clone(),
                     architectures: BTreeSet::new(),
                     components: BTreeSet::new(),
                     sha256: BTreeMap::new(),
                 }
             };
-            self.suites.insert(String::from(suite), rel);
+            self.suites.insert(suite.clone(), rel);
         }
         let s = self.suites.get_mut(suite).unwrap();
         s.architectures.insert(String::from(arch));
-        s.components.insert(String::from(component));
+        s.components.insert(component.clone());
 
-        let triple = (String::from(suite), String::from(component),
-                      String::from(arch));
+        let triple = (suite.clone(), component.clone(), String::from(arch));
         if !self.components.contains_key(&triple) {
             let packages_file = self.root.join("dists").join(suite)
                 .join(component).join(format!("binary-{}/Packages", arch));
-            let packages = if packages_file.exists() {
-                try!(Packages::read(&packages_file).context(&packages_file))
+            let mut packages = if packages_file.exists() {
+                Index::read(&packages_file).context(&packages_file)?
             } else {
-                Packages::new()
+                Index::new()
             };
+            packages.limit = repo.keep_releases;
             self.components.insert(triple.clone(), packages);
         }
         let packages = self.components.get_mut(&triple).unwrap();
         Ok(Component(packages, &mut self.files))
     }
-    pub fn trim(&mut self, suite: &str, cmp: &str, limit: usize) {
-        assert!(limit > 0);
+    fn trim(&mut self) {
         for (&(ref rs, ref rcmp, _), ref mut pkgs)
             in self.components.iter_mut()
         {
-            if rs == suite && rcmp == cmp {
-                for (_, ref mut collection) in pkgs.0.iter_mut() {
-                    while collection.len() > limit {
-                        let smallest = collection.keys()
-                            .next().unwrap().clone();
-                        collection.remove(&smallest);
-                    }
-                }
+            if let Some(limit) = pkgs.limit {
+              for (_, ref mut collection) in pkgs.packages.iter_mut() {
+                  while collection.len() > limit {
+                      let smallest = collection.keys()
+                          .next().unwrap().clone();
+                      collection.remove(&smallest);
+                  }
+              }
             }
+
         }
     }
     pub fn write(mut self) -> io::Result<()> {
         if self.suites.len() == 0 && self.components.len() == 0 {
             return Ok(());
         }
+        self.trim();
 
         let mut tempfiles = Vec::new();
         for ((suite, cmp, arch), pkg) in self.components {
