@@ -84,7 +84,6 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
         }
     }
     debian.write()?;
-    // TODO(tailhook) remove removed files
     Ok(())
 }
 
