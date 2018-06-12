@@ -84,6 +84,7 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
         }
     }
     debian.write()?;
+    html_links.write()?;
     Ok(())
 }
 
