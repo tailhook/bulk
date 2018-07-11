@@ -19,12 +19,11 @@ impl<T: io::Write> ArchiveExt for tar::Builder<T> {
         -> Result<(), io::Error>
     {
         let mut head = tar::Header::new_gnu();
-        try!(head.set_path(name));
         head.set_mtime(mtime as u64);
         head.set_size(data.len() as u64);
         head.set_mode(0o644);
         head.set_cksum();
-        self.append(&head, &mut io::Cursor::new(&data))
+        self.append_data(&mut head, name, &mut io::Cursor::new(&data))
     }
     /// This does same as Builder::append_file, but has no mtime/size/owner
     /// information which we explicitly have chosen to omit
@@ -39,7 +38,6 @@ impl<T: io::Write> ArchiveExt for tar::Builder<T> {
         let meta = try!(symlink_metadata(&fullpath));
 
         let mut head = tar::Header::new_gnu();
-        try!(head.set_path(path));
         head.set_mtime(mtime as u64);
 
         if meta.file_type().is_file() {
@@ -48,7 +46,7 @@ impl<T: io::Write> ArchiveExt for tar::Builder<T> {
             head.set_size(meta.len() as u64);
             head.set_mode(meta.permissions().mode());
             head.set_cksum();
-            self.append(&head, &mut file)
+            self.append_data(&mut head, &path, &mut file)
         } else if meta.file_type().is_symlink() {
             head.set_entry_type(tar::EntryType::Symlink);
             let lnk = try!(read_link(&fullpath));
@@ -56,13 +54,13 @@ impl<T: io::Write> ArchiveExt for tar::Builder<T> {
             head.set_mode(meta.permissions().mode());
             try!(head.set_link_name(lnk));
             head.set_cksum();
-            self.append(&head, &mut io::empty())
+            self.append_data(&mut head, &path, &mut io::empty())
         } else if meta.file_type().is_dir() {
             head.set_entry_type(tar::EntryType::Directory);
             head.set_size(0);
             head.set_mode(meta.permissions().mode());
             head.set_cksum();
-            self.append(&head, &mut io::empty())
+            self.append_data(&mut head, &path, &mut io::empty())
         } else {
             // Silently skip as documented
             Ok(())
