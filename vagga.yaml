@@ -81,7 +81,8 @@ commands:
     container: trusty-install
     write-mode: transient-hard-link-copy
     run: &installtest |
-      /usr/bin/bulk --help
+      set -ex
+      /usr/bin/bulk --help && exit 1
       webfsd -r /work/dist/repos -p 7777 &
       apt-get update
       apt-get install -y --allow-unauthenticated bulk
@@ -141,6 +142,7 @@ containers:
       url: http://localhost:7777/
       suite: static
       components: [bulk-testing]
+      trusted: true
 
   xenial-install:
     setup:
@@ -151,6 +153,7 @@ containers:
       url: http://localhost:7777/
       suite: static
       components: [bulk-testing]
+      trusted: true
 
   bionic-install:
     setup:
