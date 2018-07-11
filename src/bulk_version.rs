@@ -4,6 +4,7 @@ use quire::validate as V;
 
 use version::Version;
 
+#[derive(Debug)]
 pub struct MinimumVersion(pub Version<&'static str>);
 
 impl V::Validator for MinimumVersion {
