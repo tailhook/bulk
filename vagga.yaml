@@ -161,6 +161,7 @@ containers:
       url: http://localhost:7777/
       suite: static
       components: [bulk-testing]
+      trusted: true
 
   doc:
     setup:
