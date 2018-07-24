@@ -34,17 +34,20 @@ repositories:
   index: latest/bulk
   files: files
   keep-releases: 1
+  match-filename: ^bulk-(?P<version>.*)\.tar\.gz$
   match-version: ^\d+\.\d+\.\d+$
 
 - kind: html-links
   index: stable/bulk
   files: files
   keep-releases: 1000
+  match-filename: ^bulk-(?P<version>.*)\.tar\.gz$
   match-version: ^\d+\.\d+\.\d+$
 
 - kind: html-links
   index: testing/bulk
   files: files
+  match-filename: ^bulk-(?P<version>.*)\.tar\.gz$
   keep-releases: 100
 
 

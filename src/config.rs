@@ -28,6 +28,7 @@ pub struct Repository {
     pub kind: RepositoryType,
     pub keep_releases: Option<usize>,
     pub match_version: Option<String>,
+    pub match_filename: Option<String>,
     pub skip_version: Option<String>,
 
     // debian
@@ -77,6 +78,7 @@ impl Config {
             )
             .member("keep_releases", Numeric::new().optional())
             .member("match_version", Scalar::new().optional())
+            .member("match_filename", Scalar::new().optional())
             .member("skip_version", Scalar::new().optional())
             // debian
             .member("suite", Scalar::new().optional())
