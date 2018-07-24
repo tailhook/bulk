@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 
+use failure::Error;
 use libflate::gzip;
 use unicase::UniCase;
 
@@ -23,8 +24,23 @@ fn error(text: &'static str) -> io::Error {
     return io::Error::new(io::ErrorKind::Other, text);
 }
 
-pub fn gather_metadata<P: AsRef<Path>>(p: P) -> io::Result<PackageMeta> {
-    let path = p.as_ref();
+pub fn gather_metadata(p: impl AsRef<Path>) -> Result<PackageMeta, Error> {
+    let p = p.as_ref();
+    let fname = p.file_name().and_then(|x| x.to_str());
+    match fname {
+        Some(fname) if fname.ends_with(".deb") => {
+            read_deb(p)
+                .map_err(|e| format_err!("Error reading deb {:?}: {}", p, e))
+        }
+        Some(fname) if fname.ends_with(".tar.gz") => {
+            unimplemented!("tar.gz");
+        }
+        Some(_) | None => {
+            return Err(format_err!("Unknown package type {:?}", p));
+        }
+    }
+}
+pub fn read_deb(path: &Path) -> io::Result<PackageMeta> {
     let buf = BufReader::new(fs::File::open(path)?);
     let mut arch = ar::Archive::new(buf)?;
     {

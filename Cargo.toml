@@ -31,6 +31,7 @@ tempfile = "3.0.2"
 failure = "0.1.1"
 capturing-glob = "0.1.1"
 trimmer = "0.3.6"
+trimmer_derive = "0.1.0"
 ciruela = "0.6.6"
 
 [[bin]]

@@ -9,12 +9,14 @@ use hash_file::hash_file;
 use repo::metadata::PackageMeta;
 use repo::ConflictResolution;
 
+#[derive(Debug)]
 pub struct Repository {
     base_dir: PathBuf,
     repos: HashMap<PathBuf, BTreeMap<Version<String>, Package>>,
     file_info: HashMap<PathBuf, FileInfo>,
 }
 
+#[derive(Debug)]
 pub struct Subrepository<'a> {
     repo: &'a mut Repository,
     index: &'a Path,
@@ -59,6 +61,7 @@ impl Repository {
         if self.repos.is_empty() {
             return Ok(())
         }
+        println!("{:#?}", self);
         unimplemented!();
     }
 }

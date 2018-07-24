@@ -41,6 +41,8 @@ commands:
       # pack by itself
       ./target/debug/bulk with-version "$version" \
         /work/pkg/usr/bin/bulk pack --dir ./pkg "$@"
+      # pack a tar package
+      tar -czf dist/bulk-$version.tar.gz -C ./pkg .
 
   repo-add: !Command
     description: "Add `*.deb` to test repository in dist/repos"
@@ -51,7 +53,7 @@ commands:
       target/debug/bulk repo-add \
         --config ./bulk.yaml --repository-base ./dist/repos \
         --replace-existing \
-        dist/*.deb "$@"
+        dist/*.deb dist/*.tar.gz "$@"
 
   get-version: !Command
     description: "Get version of this package (mostly to test bulk)"
