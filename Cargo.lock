@@ -155,6 +155,7 @@ dependencies = [
  "scan_dir 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.59 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.59 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_regex 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile 3.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1070,6 +1071,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_regex"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "regex 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.59 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "sha1"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1757,6 +1767,7 @@ dependencies = [
 "checksum serde_derive 1.0.59 (registry+https://github.com/rust-lang/crates.io-index)" = "94bb618afe46430c6b089e9b111dc5b2fcd3e26a268da0993f6d16bea51c6021"
 "checksum serde_json 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)" = "f3ad6d546e765177cf3dded3c2e424a8040f870083a0e64064746b958ece9cb1"
 "checksum serde_millis 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e6e2dc780ca5ee2c369d1d01d100270203c4ff923d2a4264812d723766434d00"
+"checksum serde_regex 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "372267dd7adc8cca3c616875ea34e79b51357e67dd39bdbe4df5c54f505b4787"
 "checksum sha1 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "933ed2cffa70bb0e1a2c1bf1174d0f39dd3b81bbf5597d882d886710c8729924"
 "checksum sha2 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9eb6be24e4c23a84d7184280d2722f7f2731fcdd4a9d886efbfe4413e4847ea0"
 "checksum slab 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fdeff4cd9ecff59ec7e3744cbca73dfe5ac35c2aedb2cfba8a1c715a18912e9d"

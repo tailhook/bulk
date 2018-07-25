@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use regex::Regex;
 use quire::validate::{Sequence, Structure, Enum, Nothing, Numeric, Scalar};
 use quire::{parse_config, Options};
 
@@ -16,7 +17,7 @@ pub struct Metadata {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all="kebab-case")]
 pub enum RepositoryType {
     Debian,
@@ -27,9 +28,12 @@ pub enum RepositoryType {
 pub struct Repository {
     pub kind: RepositoryType,
     pub keep_releases: Option<usize>,
-    pub match_version: Option<String>,
-    pub match_filename: Option<String>,
-    pub skip_version: Option<String>,
+    #[serde(with="::serde_regex")]
+    pub match_version: Option<Regex>,
+    #[serde(with="::serde_regex")]
+    pub match_filename: Option<Regex>,
+    #[serde(with="::serde_regex")]
+    pub skip_version: Option<Regex>,
 
     // debian
     pub suite: Option<String>,

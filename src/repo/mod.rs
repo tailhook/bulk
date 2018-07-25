@@ -28,28 +28,29 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
     on_conflict: ConflictResolution)
     -> Result<(), Error>
 {
-    let packages = packages.iter().map(gather_metadata)
-        .collect::<Result<Vec<_>, _>>()?;
     debug!("Packages read {:#?}", packages);
     let cfg = Config::parse_file(&config)
         .map_err(|e| format_err!("can't parse config {:?}: {}", config, e))?;
     let mut debian = debian::Repository::new(dir);
     let mut html_links = html_links::Repository::new(dir);
 
+    let packages = packages.iter().filter_map(|path| {
+            match gather_metadata(path, &cfg) {
+                Ok(None) => {
+                    info!("Skipped file {:?}", path);
+                    None
+                }
+                Ok(Some(x)) => Some(Ok(x)),
+                Err(e) => Some(Err(e)),
+            }
+        }).collect::<Result<Vec<_>, _>>()?;
     for repo in &cfg.repositories {
-        let version_re = match repo.match_version {
-            Some(ref re) => Some(Regex::new(re)?),
-            None => None,
-        };
-        let skip_re = match repo.skip_version {
-            Some(ref re) => Some(Regex::new(re)?),
-            None => None,
-        };
         let matching = packages.iter()
             .filter(|p| {
-                version_re.as_ref().map(|x| x.is_match(&p.version))
+                p.kind == repo.kind &&
+                repo.match_version.as_ref().map(|x| x.is_match(&p.version))
                 .unwrap_or(true) &&
-                !skip_re.as_ref().map(|x| x.is_match(&p.version))
+                !repo.skip_version.as_ref().map(|x| x.is_match(&p.version))
                 .unwrap_or(false)
             })
             .collect::<Vec<_>>();

@@ -33,6 +33,7 @@ capturing-glob = "0.1.1"
 trimmer = "0.3.6"
 trimmer_derive = "0.1.0"
 ciruela = "0.6.6"
+serde_regex = "0.3.0"
 
 [[bin]]
 name = "bulk"
