@@ -1,11 +1,14 @@
 extern crate argparse;
 extern crate env_logger;
-extern crate libflate;
 extern crate git2;
+extern crate libflate;
+extern crate nice_fs;
 extern crate quire;
 extern crate regex;
-extern crate serde;
 extern crate scan_dir;
+extern crate serde;
+extern crate serde_json;
+extern crate serde_regex;
 extern crate sha2;
 extern crate tar;
 extern crate tempfile;
@@ -17,7 +20,6 @@ extern crate unicase;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate serde_derive;
-#[macro_use] extern crate serde_regex;
 
 
 mod config;

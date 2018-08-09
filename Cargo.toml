@@ -34,6 +34,8 @@ trimmer = "0.3.6"
 trimmer_derive = "0.1.0"
 ciruela = "0.6.6"
 serde_regex = "0.3.0"
+serde_json = "1.0.24"
+nice-fs = { path = "nice-fs" }  # temporarily
 
 [[bin]]
 name = "bulk"

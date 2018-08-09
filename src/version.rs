@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 
 use argparse::FromCommandLine;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Version<T: AsRef<str>>(pub T);
 pub struct Components<'a>(&'a str, Peekable<CharIndices<'a>>);
 

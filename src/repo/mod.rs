@@ -8,8 +8,7 @@ use std::io::{stdout, stderr, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
-use failure::{Error, err_msg};
-use regex::Regex;
+use failure::{Error};
 use argparse::{ArgumentParser, Parse, Collect, StoreConst};
 
 use config::{Config, RepositoryType};
@@ -57,13 +56,6 @@ fn _repo_add(config: &Path, packages: &Vec<String>, dir: &Path,
         if matching.len() > 0 {
             match repo.kind {
                 RepositoryType::Debian => {
-                    let (suite, comp) = match (&repo.suite, &repo.component) {
-                        (&Some(ref suite), &Some(ref comp)) => (suite, comp),
-                        _ => {
-                            return Err(err_msg("Debian repository requires \
-                                    suite and component to be specified"));
-                        }
-                    };
                     for p in matching {
                         debian.open(&repo, &p.arch)?
                             .add_package(p, on_conflict)?;

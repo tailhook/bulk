@@ -1,8 +1,12 @@
+use std::io::BufWriter;
 use std::path::{Path, PathBuf};
-use std::fs::{File, create_dir_all, rename, copy, metadata};
+use std::fs::{metadata};
 use std::collections::{BTreeMap, HashMap};
 
 use failure::Error;
+use libflate::gzip;
+use nice_fs;
+use serde_json;
 
 use version::Version;
 use hash_file::hash_file;
@@ -23,7 +27,7 @@ pub struct Subrepository<'a> {
     files: &'a Path,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct Package {
     name: String,
     version: Version<String>,
@@ -57,9 +61,19 @@ impl Repository {
             files: files,
         })
     }
-    pub fn write(mut self) -> Result<(), Error> {
+    pub fn write(self) -> Result<(), Error> {
         if self.repos.is_empty() {
             return Ok(())
+        }
+        let fs = nice_fs::Fs::new(&self.base_dir)?;
+        for (path, packages) in &self.repos {
+            let repo_fs = fs.at_created_dir(&path)?;
+            repo_fs.write_with("bulk-repo.json.gz", |file| {
+                let mut enc = gzip::Encoder::new(BufWriter::new(file))?;
+                serde_json::to_writer_pretty(&mut enc, &packages)?;
+                enc.finish().into_result()?;
+                Ok(())
+            })?;
         }
         println!("{:#?}", self);
         unimplemented!();

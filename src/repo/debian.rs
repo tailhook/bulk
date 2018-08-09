@@ -369,7 +369,7 @@ impl Repository {
         Ok(Component(packages, &mut self.files))
     }
     fn trim(&mut self) {
-        for (&(ref rs, ref rcmp, _), ref mut pkgs)
+        for (_, ref mut pkgs)
             in self.components.iter_mut()
         {
             if let Some(limit) = pkgs.limit {
